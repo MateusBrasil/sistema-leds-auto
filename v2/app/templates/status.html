@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% set active_nav = 'status' %}
+{% block title %}Estado{% endblock %}
+{% block crumbs %}<a href="/">Início</a><span class="sep">›</span><span class="current">Estado</span>{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn" onclick="location.reload()">{{ ic.icon('refresh', cls='nav-icon') }} Refrescar</button>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <h1>Estado das integrações</h1>
+  <p class="subtitle">Live check de cada serviço externo. Auto-refresh a cada 30 segundos. Cada teste corre uma chamada real à API.</p>
+</div>
+
+<div class="grid-3" data-health-grid>
+  {# inicial — placeholders skeleton #}
+  {% for i in range(8) %}
+  <div class="status-card">
+    <div class="status-head">
+      <div class="status-icon skeleton" style="background: var(--surface-2);"></div>
+      <div style="flex: 1;">
+        <div class="skeleton" style="height: 14px; width: 60%; margin-bottom: 6px;"></div>
+        <div class="skeleton" style="height: 10px; width: 40%;"></div>
+      </div>
+    </div>
+    <div class="skeleton" style="height: 10px; width: 80%; margin-top: 10px;"></div>
+  </div>
+  {% endfor %}
+</div>
+
+<h2>Como interpretar</h2>
+<div class="grid-3">
+  <div class="card">
+    <div class="card-body padded">
+      <span class="badge success dot">Operacional</span>
+      <p class="muted text-sm mt-2 mb-1">A integração respondeu correctamente. Vê o latency em milissegundos no canto.</p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body padded">
+      <span class="badge bad dot">Falha</span>
+      <p class="muted text-sm mt-2 mb-1">A API rejeitou ou está down. Vê a mensagem de erro para diagnóstico (ex: trial expirou, key inválida, sem quota).</p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body padded">
+      <span class="badge dot">Desactivado</span>
+      <p class="muted text-sm mt-2 mb-1">Sem chave no <code>.env</code> — sistema continua a funcionar com fallback quando aplicável.</p>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

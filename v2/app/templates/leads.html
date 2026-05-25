@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% set active_nav = 'leads' %}
+{% block title %}Leads{% endblock %}
+{% block crumbs %}<a href="/">Início</a><span class="sep">›</span><span class="current">Leads</span>{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn" data-export>{{ ic.icon('download', cls='nav-icon') }} Export CSV</button>
+<a href="/campaigns/new" class="btn primary">{{ ic.icon('plus', cls='nav-icon') }} Capturar mais</a>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <h1>Leads</h1>
+  <p class="subtitle">{{ total_filtered }} leads {% if selected_stage or selected_source or min_score or search_q %}com os filtros aplicados{% else %}no total{% endif %}. Selecciona vários para acções em massa, ou exporta para CSV.</p>
+</div>
+
+<form method="get" action="/leads" class="filters" autocomplete="off">
+  <div class="form-group" style="flex: 2; max-width: 280px;">
+    <label>Pesquisar</label>
+    <input type="search" name="q" value="{{ search_q }}" placeholder="nome, email, telefone, website…" autocomplete="off">
+  </div>
+  <div class="form-group">
+    <label>Campanha</label>
+    <select name="campaign">
+      <option value="">Todas as origens</option>
+      {% for cid, cname, cniche, ccity, ccreated, ccount in campaigns_with_leads %}
+      <option value="{{ cid }}" {% if cid|string == selected_campaign|string %}selected{% endif %}>{{ cname }} · {{ ccount }} leads</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="form-group">
+    <label>Etapa</label>
+    <select name="stage">
+      <option value="">Todas</option>
+      {% for s in stages %}<option value="{{ s }}" {% if s == selected_stage %}selected{% endif %}>{{ s }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="form-group">
+    <label>Fonte</label>
+    <select name="source">
+      <option value="">Todas</option>
+      {% for s in sources %}<option value="{{ s }}" {% if s == selected_source %}selected{% endif %}>{{ s }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="form-group" style="max-width: 110px;">
+    <label>Score ≥</label>
+    <input type="number" name="min_score" value="{{ min_score }}" min="0" max="100" placeholder="0" autocomplete="off">
+  </div>
+  <button class="btn primary" type="submit">{{ ic.icon('filter', cls='nav-icon') }} Aplicar</button>
+  {% if selected_stage or selected_source or min_score or search_q or selected_campaign %}
+  <a href="/leads" class="btn ghost">Limpar</a>
+  {% endif %}
+</form>
+
+<div class="bulk-bar" data-bulk-bar>
+  <strong><span data-bulk-count>0</span> seleccionados</strong>
+  <div class="bulk-actions">
+    <div class="btn-group">
+      <button class="btn sm" data-bulk-action="stage" data-bulk-value="contactado">→ Contactado</button>
+      <button class="btn sm" data-bulk-action="stage" data-bulk-value="followup">→ Follow-up</button>
+      <button class="btn sm" data-bulk-action="stage" data-bulk-value="reuniao">→ Reunião</button>
+      <button class="btn sm" data-bulk-action="stage" data-bulk-value="arquivo">→ Arquivo</button>
+    </div>
+    <button class="btn sm bad" data-bulk-action="stage" data-bulk-value="blacklist" data-confirm="Mover {n} leads para a blacklist? Não receberão mais mensagens.">{{ ic.icon('shield', cls='nav-icon') }} Blacklist</button>
+    <button class="btn sm bad" data-bulk-action="delete" data-confirm="Apagar permanentemente {n} leads? Esta acção não pode ser desfeita.">{{ ic.icon('trash', cls='nav-icon') }} Apagar</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    {% if leads %}
+    <div class="table-wrap">
+      <table class="table" data-bulk>
+        <thead>
+          <tr>
+            <th class="checkbox-cell"><label class="checkbox"><input type="checkbox" data-bulk-master></label></th>
+            <th>Score</th>
+            <th>Nome</th>
+            <th>Cidade</th>
+            <th>Nicho</th>
+            <th>Contacto</th>
+            <th>Campanha</th>
+            <th>Fonte</th>
+            <th>Etapa</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for lead in leads %}
+          <tr>
+            <td class="checkbox-cell"><label class="checkbox"><input type="checkbox" data-bulk-row value="{{ lead.id }}"></label></td>
+            <td><span class="score score-{{ ((lead.score or 0) // 25) + (1 if lead.score else 0) }}">{{ lead.score if lead.score is not none else '—' }}</span></td>
+            <td><strong>{{ lead.name }}</strong>{% if lead.rating %} <span class="muted text-xs">★ {{ lead.rating }}</span>{% endif %}</td>
+            <td class="compact">{{ lead.city or '—' }}</td>
+            <td class="compact">{{ lead.niche or '—' }}</td>
+            <td class="compact">
+              {% if lead.phone_e164 %}<div class="mono text-xs">{{ lead.phone_e164 }}</div>{% endif %}
+              {% if lead.email %}<div class="text-xs">{{ lead.email }}{% if not lead.email_valid %} <span class="badge warn">!</span>{% endif %}</div>{% endif %}
+            </td>
+            <td class="compact">
+              {% if lead.captured_by_campaign_id %}
+                <a href="/leads?campaign={{ lead.captured_by_campaign_id }}" class="badge brand" style="text-decoration: none;">#{{ lead.captured_by_campaign_id }}</a>
+              {% else %}—{% endif %}
+            </td>
+            <td><span class="source">{{ lead.source }}</span></td>
+            <td><span class="stage stage-{{ lead.stage }}">{{ lead.stage }}</span></td>
+            <td><a href="/leads/{{ lead.id }}" class="btn sm">Abrir</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty">
+      <div class="empty-icon">{{ ic.icon('users', cls='') }}</div>
+      <div class="empty-title">Sem leads com estes filtros</div>
+      <div class="empty-desc">Tenta limpar os filtros ou lança uma campanha nova para capturar mais leads do nicho que precisas.</div>
+      <div class="actions" style="justify-content: center;">
+        <a href="/leads" class="btn">Limpar filtros</a>
+        <a href="/campaigns/new" class="btn primary">Nova campanha</a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

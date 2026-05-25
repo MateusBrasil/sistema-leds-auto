@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+{% set active_nav = 'campaigns' %}
+{% block title %}Lançando · {{ c.name }}{% endblock %}
+{% block crumbs %}<a href="/">Início</a><span class="sep">›</span><a href="/campaigns">Campanhas</a><span class="sep">›</span><span class="current">{{ c.name }}</span>{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <h1>{{ c.name }}</h1>
+  <p class="subtitle"><span class="badge brand dot" id="live-pulse">Em execução</span> · {{ c.niche }} · {{ c.city }} · alvo {{ c.max_leads }} leads</p>
+</div>
+
+<div class="run-status" id="run-status">
+  <div class="run-status-icon">
+    <span class="spinner lg"></span>
+  </div>
+  <div class="run-status-body">
+    <div class="run-status-label" id="run-label">A iniciar pipeline...</div>
+    <div class="run-status-progress">
+      <div class="run-status-bar" id="run-bar" style="width: 2%;"></div>
+    </div>
+    <div class="run-status-sub" id="run-sub">A preparar…</div>
+  </div>
+</div>
+
+<section class="stats" style="margin-top: 16px;">
+  <div class="stat">
+    <div class="stat-label">{{ ic.icon('users', cls='nav-icon') }} Capturados</div>
+    <div class="stat-value tnum" id="m-captured">0</div>
+    <div class="stat-foot">de máx. {{ c.max_leads }}</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">{{ ic.icon('sparkles', cls='nav-icon') }} Variações</div>
+    <div class="stat-value tnum" id="m-variations">—</div>
+    <div class="stat-foot" id="m-variations-list">aguardando IA</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">{{ ic.icon('whatsapp', cls='nav-icon') }} WhatsApp</div>
+    <div class="stat-value tnum" id="m-whatsapp">0</div>
+    <div class="stat-foot">enviados</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">{{ ic.icon('mail', cls='nav-icon') }} Email</div>
+    <div class="stat-value tnum" id="m-email">0</div>
+    <div class="stat-foot">enviados</div>
+  </div>
+</section>
+
+<h2>Leads capturados em tempo real</h2>
+<div class="card">
+  <div class="card-body">
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width: 60px;">Score</th>
+            <th>Nome</th>
+            <th>Cidade</th>
+            <th>Contacto</th>
+            <th>Fonte</th>
+            <th>Etapa</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="run-leads-tbody">
+          <tr id="run-leads-empty"><td colspan="7" class="empty-desc" style="padding: 30px; text-align: center;">Ainda nada — assim que o primeiro lead for descoberto, aparece aqui.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<h2>Log de actividade</h2>
+<div class="card">
+  <div class="card-body padded">
+    <pre id="run-log" class="run-log">[ready] aguardando stream…</pre>
+  </div>
+</div>
+
+<div class="actions" id="run-actions" style="display:none;">
+  <a href="/leads" class="btn primary">{{ ic.icon('users', cls='nav-icon') }} Ver todos os leads</a>
+  <a href="/campaigns/new" class="btn">{{ ic.icon('plus', cls='nav-icon') }} Nova campanha</a>
+  <a href="/" class="btn ghost">Voltar ao painel</a>
+</div>
+
+<style>
+.run-status {
+  display: flex; gap: 16px; align-items: flex-start;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 18px 20px;
+  border-left: 2px solid var(--brand);
+}
+.run-status.done { border-left-color: var(--brand-2); }
+.run-status.error { border-left-color: var(--bad); }
+.run-status-icon { flex-shrink: 0; padding-top: 2px; }
+.run-status-body { flex: 1; min-width: 0; }
+.run-status-label { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 10px; letter-spacing: -0.01em; }
+.run-status-progress {
+  height: 6px; background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 3px; overflow: hidden;
+}
+.run-status-bar {
+  height: 100%; background: var(--brand);
+  border-radius: 2px;
+  transition: width 0.5s var(--ease-out);
+  box-shadow: 0 0 12px rgba(132,204,22,0.4);
+}
+.run-status.done .run-status-bar { background: var(--brand-2); }
+.run-status.error .run-status-bar { background: var(--bad); }
+.run-status-sub { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); margin-top: 8px; }
+.run-log {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-3);
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 12px 14px;
+  margin: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  line-height: 1.55;
+}
+.run-log .log-line { display: block; }
+.run-log .log-ts { color: var(--muted-2); }
+.run-log .log-ok { color: var(--brand-2); }
+.run-log .log-warn { color: var(--warn); }
+.run-log .log-err { color: var(--bad); }
+.run-log .log-info { color: var(--info); }
+
+@keyframes lead-arrive {
+  from { background: var(--brand-soft); transform: translateY(-4px); opacity: 0; }
+  to { background: transparent; transform: translateY(0); opacity: 1; }
+}
+.lead-arrive { animation: lead-arrive 0.6s var(--ease-out); }
+
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(132,204,22,0.5); }
+  50% { box-shadow: 0 0 0 6px rgba(132,204,22,0); }
+}
+#live-pulse.live::before { animation: pulse-dot 1.8s infinite; }
+</style>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const campaignId = {{ c.id }};
+  const maxLeads = {{ c.max_leads }};
+
+  const el = {
+    status: document.getElementById('run-status'),
+    label: document.getElementById('run-label'),
+    bar: document.getElementById('run-bar'),
+    sub: document.getElementById('run-sub'),
+    log: document.getElementById('run-log'),
+    captured: document.getElementById('m-captured'),
+    variations: document.getElementById('m-variations'),
+    variationsList: document.getElementById('m-variations-list'),
+    whatsapp: document.getElementById('m-whatsapp'),
+    email: document.getElementById('m-email'),
+    tbody: document.getElementById('run-leads-tbody'),
+    empty: document.getElementById('run-leads-empty'),
+    actions: document.getElementById('run-actions'),
+    pulse: document.getElementById('live-pulse'),
+    iconWrap: document.querySelector('.run-status-icon'),
+  };
+  el.pulse.classList.add('live');
+
+  function log(msg, type = 'info') {
+    const ts = new Date().toTimeString().slice(0, 8);
+    const line = document.createElement('span');
+    line.className = 'log-line';
+    line.innerHTML = `<span class="log-ts">[${ts}]</span> <span class="log-${type}">${escapeHtml(msg)}</span>`;
+    if (el.log.textContent === '[ready] aguardando stream…') el.log.innerHTML = '';
+    el.log.appendChild(line);
+    el.log.scrollTop = el.log.scrollHeight;
+  }
+  function escapeHtml(s) {
+    return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function setProgress(pct, label, sub) {
+    el.bar.style.width = Math.min(100, Math.max(0, pct)) + '%';
+    if (label) el.label.textContent = label;
+    if (sub) el.sub.textContent = sub;
+  }
+
+  function appendLead(d) {
+    if (el.empty) { el.empty.remove(); el.empty = null; }
+    const tr = document.createElement('tr');
+    tr.className = 'lead-arrive';
+    const scoreCls = (d.score||0) >= 75 ? 'score-4' : (d.score||0) >= 50 ? 'score-3' : (d.score||0) >= 25 ? 'score-2' : 'score-1';
+    const contact = d.phone_e164 || d.email || '—';
+    tr.innerHTML = `
+      <td><span class="score ${scoreCls}">${d.score ?? '—'}</span></td>
+      <td><strong>${escapeHtml(d.name)}</strong>${d.rating ? ` <span class="muted text-xs">★ ${d.rating}</span>` : ''}</td>
+      <td class="compact">${escapeHtml(d.city || '—')}</td>
+      <td class="compact mono" style="font-size: 11.5px;">${escapeHtml(contact)}</td>
+      <td><span class="source">${escapeHtml(d.source)}</span></td>
+      <td><span class="stage stage-${d.stage}">${d.stage}</span></td>
+      <td><a href="/leads/${d.id}" class="btn sm">Abrir</a></td>
+    `;
+    el.tbody.insertBefore(tr, el.tbody.firstChild);
+    el.captured.textContent = parseInt(el.captured.textContent) + 1;
+  }
+
+  const es = new EventSource(`/api/campaigns/${campaignId}/stream`);
+
+  es.addEventListener('start', e => {
+    const d = JSON.parse(e.data);
+    log(`Pipeline iniciado para "${d.niche}" em ${d.city} (máx ${d.max_leads} leads)`, 'ok');
+    setProgress(3, 'A iniciar pipeline...', `niche="${d.niche}" · city="${d.city}"`);
+  });
+
+  es.addEventListener('step', e => {
+    const d = JSON.parse(e.data);
+    setProgress(d.progress || 5, d.label || 'A processar...', d.label);
+    log(d.label, 'info');
+  });
+
+  es.addEventListener('niche-expanded', e => {
+    const d = JSON.parse(e.data);
+    el.variations.textContent = d.variations.length;
+    el.variationsList.textContent = d.variations.slice(0, 4).join(' · ') + (d.variations.length > 4 ? '…' : '');
+    log(`IA expandiu nicho em ${d.variations.length} variações: ${d.variations.join(', ')}`, 'ok');
+  });
+
+  es.addEventListener('source-done', e => {
+    const d = JSON.parse(e.data);
+    log(`${d.source}: "${d.query}" → ${d.count} candidato(s)`, 'info');
+  });
+
+  es.addEventListener('source-failed', e => {
+    const d = JSON.parse(e.data);
+    log(`${d.source}: "${d.query}" falhou — ${d.error}`, 'warn');
+  });
+
+  es.addEventListener('lead', e => {
+    const d = JSON.parse(e.data);
+    appendLead(d);
+    if (d.progress) setProgress(d.progress, `A enriquecer e qualificar... (${d.index}/${d.total})`, `Último: ${d.name} · score ${d.score}`);
+  });
+
+  es.addEventListener('sent', e => {
+    const d = JSON.parse(e.data);
+    if (d.channel === 'whatsapp') el.whatsapp.textContent = parseInt(el.whatsapp.textContent) + 1;
+    else el.email.textContent = parseInt(el.email.textContent) + 1;
+    log(`${d.channel === 'whatsapp' ? '📱' : '✉️'} enviado para ${d.lead_name}`, 'ok');
+  });
+
+  es.addEventListener('failed', e => {
+    const d = JSON.parse(e.data);
+    log(`${d.channel} falhou para lead ${d.lead_id}: ${d.error}`, 'warn');
+  });
+
+  es.addEventListener('done', e => {
+    const d = JSON.parse(e.data);
+    setProgress(100, 'Campanha concluída', `${d.captured} leads · ${d.sent_whatsapp || 0} WhatsApp · ${d.sent_email || 0} email · ${d.errors || 0} erros`);
+    el.status.classList.add('done');
+    el.iconWrap.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--brand-2)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+    el.pulse.classList.remove('live');
+    el.pulse.textContent = 'Concluído';
+    el.pulse.classList.remove('brand');
+    el.pulse.classList.add('success');
+    el.actions.style.display = 'flex';
+    log(`Pipeline concluído: ${d.captured} leads novos, ${d.sent_whatsapp || 0} WhatsApp + ${d.sent_email || 0} email enviados`, 'ok');
+    es.close();
+  });
+
+  es.addEventListener('error', e => {
+    let msg = 'Erro no stream';
+    try { msg = JSON.parse(e.data).message; } catch {}
+    el.status.classList.add('error');
+    el.iconWrap.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--bad)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+    setProgress(100, 'Erro durante a execução', msg);
+    el.pulse.classList.remove('live');
+    el.pulse.classList.remove('brand');
+    el.pulse.classList.add('bad');
+    el.pulse.textContent = 'Falhou';
+    log(msg, 'err');
+    el.actions.style.display = 'flex';
+    es.close();
+  });
+
+  es.onerror = () => {
+    if (es.readyState === EventSource.CLOSED) return;
+    log('Conexão SSE perdida — recarrega a página', 'err');
+  };
+})();
+</script>
+{% endblock %}

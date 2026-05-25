@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% set active_nav = 'new' %}
+{% block title %}Nova campanha{% endblock %}
+{% block crumbs %}<a href="/">Início</a><span class="sep">›</span><a href="/campaigns">Campanhas</a><span class="sep">›</span><span class="current">Nova</span>{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <h1>Nova campanha</h1>
+  <p class="subtitle">Indica o nicho e a cidade. O sistema corre 3 fontes em paralelo (Maps + LinkedIn + IG), faz deduplicação, enriquece emails com Hunter, valida, qualifica com IA Gemini e envia mensagens com personalização única para cada lead — respeitando limites diários.</p>
+</div>
+
+<form method="post" action="/campaigns/new" data-preview autocomplete="off" spellcheck="false">
+
+<div class="grid-aside">
+  <div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">{{ ic.icon('flag') }} 1 · Identificação</div></div>
+      <div class="card-body padded">
+        <div class="form-group">
+          <label>Nome interno</label>
+          <input name="name" required placeholder="Ex: Dentistas Lisboa · Maio" autocomplete="off" data-1p-ignore data-lpignore="true">
+          <div class="hint">Só para te organizares. O lead nunca vê este nome.</div>
+        </div>
+        <div class="row">
+          <div class="form-group">
+            <label>Nicho</label>
+            <input name="niche" required placeholder="ex: clínica dentária" autocomplete="off" data-1p-ignore data-lpignore="true">
+          </div>
+          <div class="form-group">
+            <label>Cidade</label>
+            <input name="city" required placeholder="ex: Lisboa" autocomplete="off" data-1p-ignore data-lpignore="true">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header">
+        <div class="card-title">{{ ic.icon('whatsapp') }} 2 · WhatsApp (toque 1)</div>
+        <span class="card-sub">preview live ao escreveres</span>
+      </div>
+      <div class="card-body padded">
+        <div class="form-group" style="margin-bottom: 0;">
+          <textarea name="template_whatsapp" data-tmpl="prev-wa" rows="7" required>Olá {{ '{{nome}}' }}!
+
+{{ '{{personalizacao}}' }}
+
+Não é nada grave — na verdade é uma oportunidade que a maioria ainda não viu.
+
+Tens 10 minutos esta semana para uma conversa rápida?</textarea>
+          <div class="hint">Placeholders: <code>{{ '{{nome}}' }}</code> · <code>{{ '{{nome_negocio}}' }}</code> · <code>{{ '{{cidade}}' }}</code> · <code>{{ '{{nicho}}' }}</code> · <code>{{ '{{personalizacao}}' }}</code></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header"><div class="card-title">{{ ic.icon('mail') }} 3 · Email (toque 1)</div></div>
+      <div class="card-body padded">
+        <div class="form-group">
+          <label>Assunto</label>
+          <input name="template_email_subject" data-tmpl="prev-em-subj" required value="{{ '{{nome}}' }}, reparei numa coisa no {{ '{{nome_negocio}}' }}" autocomplete="off" data-1p-ignore data-lpignore="true">
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label>Corpo</label>
+<textarea name="template_email_body" data-tmpl="prev-em-body" rows="9" required>Olá {{ '{{nome}}' }},
+
+{{ '{{personalizacao}}' }}
+
+Trabalho com negócios locais em {{ '{{cidade}}' }} e ajudo-os a captar mais clientes através de Google Ads e Meta Ads.
+
+Posso partilhar contigo o que reparei numa chamada de 15 minutos?
+
+Abraço,
+VV TRAFFIC DATA</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header"><div class="card-title">{{ ic.icon('zap') }} 4 · Regras de envio</div></div>
+      <div class="card-body padded">
+        <div class="row-3">
+          <div class="form-group">
+            <label>Quantos leads (máx.)</label>
+            <input type="number" name="max_leads" value="60" min="5" max="300" autocomplete="off">
+            <div class="hint">Teto total de leads novos a capturar. Entre 5 e 300.</div>
+          </div>
+          <div class="form-group">
+            <label>Score mínimo</label>
+            <input type="number" name="min_score" value="60" min="0" max="100" autocomplete="off">
+            <div class="hint">0-100. Só envia para leads ≥ este score.</div>
+          </div>
+          <div class="form-group">
+            <label>Acção pós-captura</label>
+            <select name="action_hint" disabled style="opacity:0.5;">
+              <option>Capturar + enviar (auto)</option>
+            </select>
+            <div class="hint">Pipeline corre tudo em sequência live.</div>
+          </div>
+        </div>
+
+        <label class="switch mt-3">
+          <input type="checkbox" name="expand_variations" value="true" checked>
+          <span>{{ ic.icon('sparkles', cls='nav-icon') }} <strong>Busca semântica de nichos</strong> — IA procura variações automaticamente <span class="muted">(ex: "lavagem de carro" → "lavajato", "auto lavagem"…)</span></span>
+        </label>
+        <label class="switch mt-2">
+          <input type="checkbox" name="use_ai" value="true" checked>
+          <span>{{ ic.icon('sparkles', cls='nav-icon') }} <strong>Personalização IA (Gemini)</strong> — gera frase única por lead</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="tip mt-3">
+      <span class="tip-icon">{{ ic.icon('shield', cls='nav-icon') }}</span>
+      <span><strong>Anti-bloqueio:</strong> limites diários (WhatsApp / Email) vêm do <code>.env</code>. Começa baixo e sobe gradualmente. Vê os limites actuais em <a href="/settings">Definições</a>.</span>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary lg" type="submit">{{ ic.icon('rocket', cls='nav-icon') }} Lançar campanha</button>
+      <a href="/" class="btn ghost">Cancelar</a>
+    </div>
+  </div>
+
+  {# ───── Preview side ───── #}
+  <div>
+    <div class="card" style="position: sticky; top: 80px;">
+      <div class="card-header">
+        <div class="card-title">{{ ic.icon('eye') }} Preview</div>
+        <span class="card-sub">como aparece ao lead</span>
+      </div>
+      <div class="preview-pane">
+        <div class="preview-label">{{ ic.icon('whatsapp') }} WhatsApp</div>
+        <div class="wa-frame">
+          <div class="wa-bubble">
+            <div id="prev-wa"></div>
+            <span class="wa-time">14:32</span>
+          </div>
+        </div>
+
+        <div class="preview-label">{{ ic.icon('mail') }} Email</div>
+        <div class="email-frame">
+          <div class="email-head">
+            <div class="email-from">
+              <div class="email-from-avatar"><img src="/static/logo.png" alt=""></div>
+              <div class="email-from-info">
+                <div class="email-from-name">VV TRAFFIC DATA</div>
+                <div class="email-from-mail truncate">wtrafficdataeu@gmail.com</div>
+              </div>
+            </div>
+            <div class="email-to">para mim ▾</div>
+            <div class="email-subject" id="prev-em-subj"></div>
+          </div>
+          <div class="email-body" id="prev-em-body"></div>
+        </div>
+
+        <div class="tip mt-3" style="font-size: 12px;">
+          <span class="tip-icon">{{ ic.icon('sparkles', cls='nav-icon') }}</span>
+          <span>Os <span class="placeholder-pill" style="display: inline-block; padding: 0 5px; background: var(--brand-soft); color: var(--brand-2); border-radius: 3px; font-style: italic;">placeholders</span> são substituídos pelos dados reais de cada lead. <code>personalizacao</code> é gerado pela IA Gemini individualmente.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</form>
+
+{% endblock %}

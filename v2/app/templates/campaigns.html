@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% set active_nav = 'campaigns' %}
+{% block title %}Campanhas{% endblock %}
+{% block crumbs %}<a href="/">Início</a><span class="sep">›</span><span class="current">Campanhas</span>{% endblock %}
+
+{% block topbar_actions %}
+<a href="/campaigns/new" class="btn primary">{{ ic.icon('rocket', cls='nav-icon') }} Nova campanha</a>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <h1>Campanhas</h1>
+  <p class="subtitle">Histórico de todas as campanhas lançadas. Clica numa para ver detalhes (leads capturados, mensagens enviadas, taxa de sucesso).</p>
+</div>
+
+{% if campaigns %}
+<div class="card">
+  <div class="card-body">
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Nicho</th>
+            <th>Cidade</th>
+            <th class="num">Capturados</th>
+            <th class="num">Enviados</th>
+            <th class="num">Score mín.</th>
+            <th>IA</th>
+            <th>Status</th>
+            <th>Data</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in campaigns %}
+          <tr>
+            <td><strong>{{ c.name }}</strong></td>
+            <td class="compact">{{ c.niche }}</td>
+            <td class="compact">{{ c.city }}</td>
+            <td class="num">{{ c.leads_captured }}</td>
+            <td class="num">{{ c.messages_sent }}</td>
+            <td class="num">{{ c.min_score }}</td>
+            <td>{% if c.use_ai_personalization %}<span class="badge brand">{{ ic.icon('sparkles', cls='nav-icon') }} on</span>{% else %}<span class="badge">off</span>{% endif %}</td>
+            <td><span class="badge">{{ c.status }}</span></td>
+            <td class="compact">{{ c.created_at.strftime('%d/%m %H:%M') }}</td>
+            <td><a href="/campaigns/{{ c.id }}" class="btn sm">Abrir</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="card">
+  <div class="empty">
+    <div class="empty-icon">{{ ic.icon('megaphone', cls='') }}</div>
+    <div class="empty-title">Sem campanhas ainda</div>
+    <div class="empty-desc">Lança uma campanha indicando nicho + cidade e o sistema faz captura, enriquecimento, qualificação e envio.</div>
+    <a href="/campaigns/new" class="btn primary">Nova campanha</a>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

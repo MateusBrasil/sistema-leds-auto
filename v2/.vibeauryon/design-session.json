@@ -1,0 +1,75 @@
+{
+  "createdAt": "2026-05-25T11:09:51.320Z",
+  "pageGoal": "Operar a máquina de prospecção diária com confiança total — capturar leads, qualificar, lançar campanhas e responder. UI tem de transmitir \"ferramenta séria de operadores profissionais\", não \"demo de SaaS de hackathon\".",
+  "niche": "B2B SaaS — Sistema de prospecção+CRM para agências de tráfego pago",
+  "targetAudience": "Dono de agência de tráfego pago em Portugal (operador único). Não-técnico mas opera ferramentas todos os dias. Quer sentir que está a usar algo \"premium, de milhões\", não algo \"gerado por IA\".",
+  "styleWords": [
+    "confident",
+    "data-driven",
+    "editorial"
+  ],
+  "referenceStyle": "vercel",
+  "sectionsNeeded": [
+    "login",
+    "dashboard-overview",
+    "data-tables",
+    "detail-view",
+    "forms",
+    "status-grid"
+  ],
+  "palette": {
+    "--background": "#000000",
+    "--foreground": "#ffffff",
+    "--primary": "#ffffff",
+    "--primary-fg": "#000000",
+    "--muted": "#111111",
+    "--muted-fg": "#888888",
+    "--border": "#333333",
+    "--card": "#0a0a0a",
+    "--radius": "4px",
+    "--font": "'Geist', 'Inter', system-ui, sans-serif",
+    "--gradient": "none",
+    "--shadow": "0 0 0 1px #333"
+  },
+  "paletteCSS": ":root {\n  --background: #000000;\n  --foreground: #ffffff;\n  --primary: #ffffff;\n  --primary-fg: #000000;\n  --muted: #111111;\n  --muted-fg: #888888;\n  --border: #333333;\n  --card: #0a0a0a;\n  --radius: 4px;\n  --font: 'Geist', 'Inter', system-ui, sans-serif;\n  --gradient: none;\n  --shadow: 0 0 0 1px #333;\n}",
+  "styleProfile": {
+    "tone": "dark",
+    "animationLevel": "subtle",
+    "colorStrategy": "black/white with occasional neon accents",
+    "typography": "large display text, high contrast",
+    "spacing": "tight sections, precise alignment",
+    "avoid": [
+      "colorful gradients",
+      "skeuomorphism",
+      "heavy shadows"
+    ],
+    "prefer": [
+      "borders over shadows",
+      "code blocks",
+      "terminal aesthetics",
+      "minimal decoration"
+    ]
+  },
+  "rules": {
+    "maxAnimationTypes": 2,
+    "maxColorAccents": 2,
+    "visualTone": "dark",
+    "mustAvoid": [
+      "colorful gradients",
+      "skeuomorphism",
+      "heavy shadows"
+    ],
+    "mustPrefer": [
+      "borders over shadows",
+      "code blocks",
+      "terminal aesthetics",
+      "minimal decoration"
+    ],
+    "colorStrategy": "black/white with occasional neon accents",
+    "typography": "large display text, high contrast",
+    "spacing": "tight sections, precise alignment"
+  },
+  "sectionWarnings": [
+    "⚠️ No hero section detected — every landing page needs a hero."
+  ]
+}

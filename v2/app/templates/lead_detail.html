@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% set active_nav = 'leads' %}
+{% block title %}{{ lead.name }}{% endblock %}
+{% block crumbs %}<a href="/">Início</a><span class="sep">›</span><a href="/leads">Leads</a><span class="sep">›</span><span class="current">{{ lead.name }}</span>{% endblock %}
+
+{% block topbar_actions %}
+<span class="score score-{{ ((lead.score or 0) // 25) + (1 if lead.score else 0) }}" style="font-size: 13px; padding: 5px 14px;">Score {{ lead.score if lead.score is not none else '—' }}</span>
+<button class="btn primary" onclick="openModal('m-send')">{{ ic.icon('send', cls='nav-icon') }} Enviar mensagem</button>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <h1>{{ lead.name }}</h1>
+  <p class="subtitle">{{ lead.source }} · {{ lead.city or 'Sem cidade' }} · {{ lead.niche or 'Sem nicho' }} · capturado em {{ lead.created_at.strftime('%d/%m/%Y') }}</p>
+</div>
+
+<div class="grid-aside">
+  <div>
+    {# ───── Identification ───── #}
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">{{ ic.icon('briefcase') }} Identificação</div>
+        <span class="source">{{ lead.source }}</span>
+      </div>
+      <div class="card-body padded">
+        <dl class="dl">
+          <dt>Telefone</dt>
+          <dd>
+            {% if lead.phone_e164 %}
+              <span class="mono">{{ lead.phone_e164 }}</span>
+              <button class="btn sm ghost" data-copy="{{ lead.phone_e164 }}" title="Copiar">{{ ic.icon('copy', cls='nav-icon') }}</button>
+            {% else %}—{% endif %}
+          </dd>
+
+          <dt>Email</dt>
+          <dd>
+            {% if lead.email %}
+              <span class="mono">{{ lead.email }}</span>
+              <button class="btn sm ghost" data-copy="{{ lead.email }}" title="Copiar">{{ ic.icon('copy', cls='nav-icon') }}</button>
+              {% if not lead.email_valid %}<span class="badge warn">inválido</span>{% endif %}
+            {% else %}—{% endif %}
+          </dd>
+
+          <dt>Website</dt>
+          <dd>{% if lead.website %}<a href="https://{{ lead.website }}" target="_blank">{{ lead.website }} {{ ic.icon('arrow-up-right', cls='nav-icon') }}</a>{% else %}—{% endif %}</dd>
+
+          <dt>Morada</dt>
+          <dd>{{ lead.address or '—' }}</dd>
+
+          <dt>Cidade · Nicho</dt>
+          <dd>{{ lead.city or '—' }} · <span class="muted">{{ lead.niche or '—' }}</span></dd>
+
+          <dt>Rating</dt>
+          <dd>
+            {% if lead.rating %}<strong>{{ lead.rating }}</strong> {{ ic.icon('star', cls='nav-icon') }}{% if lead.reviews_count %} <span class="muted">· {{ lead.reviews_count }} reviews</span>{% endif %}{% else %}—{% endif %}
+          </dd>
+        </dl>
+      </div>
+    </div>
+
+    {# ───── AI Analysis ───── #}
+    {% if lead.personalization or lead.score_reason %}
+    <div class="card mt-3">
+      <div class="card-header"><div class="card-title">{{ ic.icon('sparkles') }} Análise IA</div></div>
+      <div class="card-body padded">
+        {% if lead.score_reason %}
+        <div class="mb-3">
+          <div class="muted text-xs fw-700 mb-1" style="text-transform: uppercase; letter-spacing: 0.06em;">Porquê este score</div>
+          <div>{{ lead.score_reason }}</div>
+        </div>
+        {% endif %}
+        {% if lead.personalization %}
+        <div>
+          <div class="muted text-xs fw-700 mb-1" style="text-transform: uppercase; letter-spacing: 0.06em;">Frase de abertura sugerida</div>
+          <div class="tip">
+            <span class="tip-icon">{{ ic.icon('sparkles', cls='nav-icon') }}</span>
+            <em>{{ lead.personalization }}</em>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# ───── Notes ───── #}
+    <div class="card mt-3">
+      <div class="card-header"><div class="card-title">{{ ic.icon('note') }} Notas</div></div>
+      <div class="card-body padded">
+        <textarea id="notes-area" rows="5" placeholder="Observações pessoais sobre este lead — só visíveis para ti.">{{ lead.notes or '' }}</textarea>
+        <button class="btn primary sm mt-2" onclick="saveNotes()">{{ ic.icon('check', cls='nav-icon') }} Guardar</button>
+      </div>
+    </div>
+
+    {# ───── Conversations ───── #}
+    <div class="card mt-3">
+      <div class="card-header">
+        <div class="card-title">{{ ic.icon('inbox') }} Conversas</div>
+        <span class="muted text-sm">{{ messages | length }} mensagens</span>
+      </div>
+      <div class="card-body padded">
+        {% if messages %}
+        <div class="thread">
+          {% for m in messages %}
+          <div class="msg {{ m.direction }}">
+            <div class="msg-meta">
+              {% if m.channel == 'whatsapp' %}{{ ic.icon('whatsapp', cls='nav-icon') }}{% else %}{{ ic.icon('mail', cls='nav-icon') }}{% endif %}
+              <span>{{ m.channel }}</span><span>·</span>
+              <span>toque {{ m.touch_number }}</span><span>·</span>
+              <span>{{ m.created_at.strftime('%d/%m %H:%M') }}</span>
+              {% if m.status == 'sent' %}<span class="badge success dot">enviado</span>
+              {% elif m.status == 'failed' %}<span class="badge bad">falhou</span>
+              {% elif m.status == 'replied' %}<span class="badge brand">respondida</span>
+              {% endif %}
+            </div>
+            {% if m.subject %}<div class="fw-600 mb-1">{{ m.subject }}</div>{% endif %}
+            <div class="msg-body">{{ m.body }}</div>
+            {% if m.error %}<div class="text-xs bad mt-1">⚠ {{ m.error }}</div>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty" style="padding: 30px;">
+          <div class="empty-desc">Ainda sem mensagens. Carrega em "Enviar mensagem" para começar.</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# ───── Sidebar ───── #}
+  <div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">{{ ic.icon('flag') }} Etapa do funil</div></div>
+      <div class="card-body padded">
+        <div class="mb-2"><span class="stage stage-{{ lead.stage }}">{{ lead.stage }}</span></div>
+        <form method="post" action="/leads/{{ lead.id }}/stage" style="display: flex; gap: 8px;">
+          <select name="stage" style="flex: 1;">
+            {% for s in stages %}<option value="{{ s }}" {% if s == lead.stage %}selected{% endif %}>{{ s }}</option>{% endfor %}
+          </select>
+          <button class="btn primary" type="submit">Mover</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header"><div class="card-title">{{ ic.icon('activity') }} Actividade</div></div>
+      <div class="card-body padded">
+        <dl class="dl">
+          <dt>Toques</dt><dd><strong>{{ lead.touches }}</strong></dd>
+          <dt>Último contacto</dt><dd>{{ lead.last_contact_at.strftime('%d/%m/%Y %H:%M') if lead.last_contact_at else '—' }}</dd>
+          <dt>Última resposta</dt><dd>{{ lead.last_reply_at.strftime('%d/%m/%Y %H:%M') if lead.last_reply_at else '—' }}</dd>
+          <dt>Capturado em</dt><dd>{{ lead.created_at.strftime('%d/%m/%Y %H:%M') }}</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header"><div class="card-title">{{ ic.icon('zap') }} Acções rápidas</div></div>
+      <div class="card-body padded">
+        <div class="flex" style="flex-direction: column; gap: 6px;">
+          {% if lead.phone_e164 %}<a href="https://wa.me/{{ lead.phone_e164 | replace('+','') }}" target="_blank" class="btn w-full" style="justify-content: center;">{{ ic.icon('whatsapp', cls='nav-icon') }} Abrir WhatsApp Web</a>{% endif %}
+          {% if lead.email %}<a href="mailto:{{ lead.email }}" class="btn w-full" style="justify-content: center;">{{ ic.icon('mail', cls='nav-icon') }} Compor email</a>{% endif %}
+          {% if lead.website %}<a href="https://{{ lead.website }}" target="_blank" class="btn w-full" style="justify-content: center;">{{ ic.icon('globe', cls='nav-icon') }} Visitar website</a>{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ───── Quick send modal ───── #}
+<div class="modal-backdrop" id="m-send">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">{{ ic.icon('send') }} Enviar mensagem manual</h3>
+      <button class="modal-close" data-modal-close="m-send">{{ ic.icon('x', cls='nav-icon') }}</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Canal</label>
+        <select id="qs-channel">
+          {% if lead.phone_e164 %}<option value="whatsapp">WhatsApp · {{ lead.phone_e164 }}</option>{% endif %}
+          {% if lead.email %}<option value="email">Email · {{ lead.email }}</option>{% endif %}
+        </select>
+      </div>
+      <div class="form-group" id="qs-subject-wrap" style="display:none;">
+        <label>Assunto</label>
+        <input id="qs-subject" type="text" placeholder="Assunto do email">
+      </div>
+      <div class="form-group">
+        <label>Mensagem</label>
+        <textarea id="qs-body" rows="6" placeholder="Escreve aqui a mensagem. Placeholders: {{ '{{nome}}' }}, {{ '{{nome_negocio}}' }}, {{ '{{cidade}}' }}, {{ '{{nicho}}' }}, {{ '{{personalizacao}}' }}"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn ghost" data-modal-close="m-send">Cancelar</button>
+      <button class="btn primary" id="qs-send-btn" onclick="quickSend({{ lead.id }})">{{ ic.icon('send', cls='nav-icon') }} Enviar agora</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const chanSel = document.getElementById('qs-channel');
+const subjectWrap = document.getElementById('qs-subject-wrap');
+function syncSubject() { subjectWrap.style.display = chanSel.value === 'email' ? 'block' : 'none'; }
+chanSel.addEventListener('change', syncSubject);
+syncSubject();
+
+async function saveNotes() {
+  const notes = document.getElementById('notes-area').value;
+  try {
+    const r = await fetch('/api/leads/{{ lead.id }}/notes', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ notes })
+    });
+    if (!r.ok) throw new Error(await r.text());
+    toast('Notas guardadas', 'success');
+  } catch (e) { toast('Falha: ' + e.message, 'fail'); }
+}
+
+async function quickSend(id) {
+  const btn = document.getElementById('qs-send-btn');
+  const payload = {
+    channel: chanSel.value,
+    body: document.getElementById('qs-body').value,
+    subject: document.getElementById('qs-subject').value,
+  };
+  if (!payload.body.trim()) { toast('Escreve uma mensagem antes', 'fail'); return; }
+  btn.disabled = true;
+  try {
+    const r = await fetch(`/api/leads/${id}/send`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const data = await r.json();
+    if (!r.ok || !data.ok) throw new Error(data.error || data.detail || 'erro desconhecido');
+    closeModal('m-send');
+    toast('Mensagem enviada!', 'success');
+    setTimeout(() => location.reload(), 900);
+  } catch (e) {
+    toast('Falha: ' + e.message, 'fail');
+  } finally {
+    btn.disabled = false;
+  }
+}
+</script>
+{% endblock %}

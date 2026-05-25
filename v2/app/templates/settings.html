@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% set active_nav = 'settings' %}
+{% block title %}Definições{% endblock %}
+{% block crumbs %}<a href="/">Início</a><span class="sep">›</span><span class="current">Definições</span>{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <h1>Definições</h1>
+  <p class="subtitle">Estado actual do <code>.env</code>. Para alterar qualquer valor, edita o ficheiro <code>v2/.env</code> e reinicia o servidor (<code>start.bat</code>).</p>
+</div>
+
+<div class="tip">
+  <span class="tip-icon">{{ ic.icon('lock', cls='nav-icon') }}</span>
+  <span>As chaves de API são mascaradas por segurança. Para vê-las completas, abre o ficheiro <code>.env</code> directamente.</span>
+</div>
+
+{% macro mask(s, keep=4) %}{% if not s %}<span class="muted">— vazio</span>{% elif s|length > 10 %}<span class="mono">{{ s[:keep] }}…{{ s[-keep:] }}</span>{% else %}<span class="mono">{{ s[:2] }}…</span>{% endif %}{% endmacro %}
+
+<h2>Identidade da agência</h2>
+<div class="card">
+  <div class="card-body padded">
+    <dl class="dl">
+      <dt>Nome remetente</dt><dd>{{ settings.SENDER_NAME }}</dd>
+      <dt>Email remetente</dt><dd>{{ settings.SENDER_EMAIL }} <button class="btn sm ghost" data-copy="{{ settings.SENDER_EMAIL }}" title="Copiar">{{ ic.icon('copy', cls='nav-icon') }}</button></dd>
+      <dt>Código país</dt><dd>+{{ settings.SENDER_COUNTRY_CODE }}</dd>
+    </dl>
+  </div>
+</div>
+
+<h2>Captação</h2>
+<div class="card">
+  <div class="card-body padded">
+    <dl class="dl">
+      <dt>Google Places</dt><dd>{{ mask(settings.GOOGLE_PLACES_API_KEY) }}</dd>
+      <dt>Apify</dt><dd>{{ mask(settings.APIFY_API_TOKEN) }}</dd>
+    </dl>
+  </div>
+</div>
+
+<h2>Enriquecimento</h2>
+<div class="card">
+  <div class="card-body padded">
+    <dl class="dl">
+      <dt>Hunter.io</dt><dd>{{ mask(settings.HUNTER_API_KEY) }}</dd>
+      <dt>ZeroBounce</dt><dd>{{ mask(settings.ZEROBOUNCE_API_KEY) }} <span class="muted text-sm">(opcional)</span></dd>
+    </dl>
+  </div>
+</div>
+
+<h2>Disparo</h2>
+<div class="card">
+  <div class="card-body padded">
+    <dl class="dl">
+      <dt>Brevo (email)</dt><dd>{{ mask(settings.BREVO_API_KEY) }}</dd>
+      <dt>WhatsApp provider</dt><dd><span class="badge brand">{{ settings.WHATSAPP_PROVIDER }}</span></dd>
+      {% if settings.WHATSAPP_PROVIDER == 'zapi' %}
+        <dt>Z-API instance</dt><dd>{{ mask(settings.ZAPI_INSTANCE_ID) }}</dd>
+        <dt>Z-API token</dt><dd>{{ mask(settings.ZAPI_TOKEN) }}</dd>
+        <dt>Z-API client-token</dt><dd>{{ mask(settings.ZAPI_CLIENT_TOKEN) }}</dd>
+      {% else %}
+        <dt>Evolution URL</dt><dd class="mono">{{ settings.EVOLUTION_BASE_URL }}</dd>
+        <dt>Evolution key</dt><dd>{{ mask(settings.EVOLUTION_API_KEY) }}</dd>
+        <dt>Evolution instance</dt><dd>{{ settings.EVOLUTION_INSTANCE }}</dd>
+      {% endif %}
+    </dl>
+  </div>
+</div>
+
+<h2>Inteligência Artificial</h2>
+<div class="card">
+  <div class="card-body padded">
+    <dl class="dl">
+      <dt>Gemini key</dt><dd>{{ mask(settings.GEMINI_API_KEY) }}</dd>
+      <dt>Modelo</dt><dd><span class="code">{{ settings.GEMINI_MODEL }}</span></dd>
+      <dt>Groq key</dt><dd>{{ mask(settings.GROQ_API_KEY) }} <span class="muted text-sm">(alternativo)</span></dd>
+    </dl>
+  </div>
+</div>
+
+<h2>Limites anti-bloqueio</h2>
+<div class="card">
+  <div class="card-body padded">
+    <dl class="dl">
+      <dt>WhatsApp/dia</dt><dd><span class="mono">{{ settings.WHATSAPP_MAX_PER_DAY }}</span> mensagens</dd>
+      <dt>Email/dia</dt><dd><span class="mono">{{ settings.EMAIL_MAX_PER_DAY }}</span> mensagens</dd>
+      <dt>Delay entre envios</dt><dd><span class="mono">{{ settings.SEND_DELAY_MS }}</span> ms</dd>
+    </dl>
+    <div class="tip warn mt-3">
+      <span class="tip-icon">{{ ic.icon('shield', cls='nav-icon') }}</span>
+      <span><strong>Conselho:</strong> começa baixo (30 WhatsApp/dia, 50 email/dia) e sobe gradualmente para aquecer número e domínio. Subir demasiado depressa = ban garantido.</span>
+    </div>
+  </div>
+</div>
+
+<h2>Follow-up automático</h2>
+<div class="card">
+  <div class="card-body padded">
+    <dl class="dl">
+      <dt>Toque #2</dt><dd>após <strong>{{ settings.FOLLOWUP_D2 }}</strong> dias do último contacto</dd>
+      <dt>Toque #3</dt><dd>após <strong>{{ settings.FOLLOWUP_D3 }}</strong> dias</dd>
+      <dt>Toque #4</dt><dd>após <strong>{{ settings.FOLLOWUP_D4 }}</strong> dias</dd>
+      <dt>Toque #5 (breakup)</dt><dd>após <strong>{{ settings.FOLLOWUP_D5 }}</strong> dias</dd>
+    </dl>
+  </div>
+</div>
+
+<h2>{{ ic.icon('database') }} Base de dados</h2>
+<div class="card">
+  <div class="card-body padded">
+    {% if db_stats.exists %}
+    <div class="tip success mb-3">
+      <span class="tip-icon">{{ ic.icon('check', cls='nav-icon') }}</span>
+      <span><strong>Persistência activa.</strong> Os teus leads ficam guardados entre reinícios do servidor. Backups automáticos diários (rotação 7 dias).</span>
+    </div>
+    <dl class="dl">
+      <dt>Localização</dt><dd class="mono">{{ db_stats.path }}</dd>
+      <dt>Tamanho actual</dt><dd><strong>{{ "%.1f" | format(db_stats.size_bytes / 1024) }} KB</strong> <span class="muted">({{ db_stats.size_bytes }} bytes)</span></dd>
+      <dt>Leads guardados</dt><dd><strong>{{ db_stats.leads_count }}</strong></dd>
+      <dt>Última modificação</dt><dd>{{ db_stats.modified_at.strftime('%d/%m/%Y %H:%M') if db_stats.modified_at else '—' }}</dd>
+    </dl>
+    <div class="actions" style="margin-top: 16px;">
+      <a class="btn primary" href="/api/db/download">{{ ic.icon('download', cls='nav-icon') }} Descarregar backup completo (.db)</a>
+      <button class="btn" onclick="backupNow()">{{ ic.icon('shield', cls='nav-icon') }} Criar backup agora</button>
+    </div>
+    {% else %}
+    <div class="tip warn">
+      <span class="tip-icon">{{ ic.icon('shield', cls='nav-icon') }}</span>
+      <span>Base de dados ainda não existe. Será criada na primeira campanha que lançares.</span>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if backups %}
+<div class="card mt-3">
+  <div class="card-header"><div class="card-title">{{ ic.icon('clock') }} Backups disponíveis</div></div>
+  <div class="card-body">
+    <table class="table">
+      <thead>
+        <tr><th>Nome do ficheiro</th><th>Criado em</th><th class="num">Tamanho</th></tr>
+      </thead>
+      <tbody>
+        {% for b in backups %}
+        <tr>
+          <td class="mono">{{ b.name }}</td>
+          <td>{{ b.created_at.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+          <td class="num">{{ "%.1f" | format(b.size_bytes / 1024) }} KB</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="muted text-sm" style="padding: 12px 18px 4px;">
+      Os backups ficam em <code>data/backups/</code>. Mantém-se os últimos 7. Para restaurar: pára o servidor, copia o ficheiro de backup desejado para <code>data/leads.db</code> (substituindo o actual), e arranca de novo.
+    </p>
+  </div>
+</div>
+{% endif %}
+
+<h2>App</h2>
+<div class="card">
+  <div class="card-body padded">
+    <dl class="dl">
+      <dt>Host / porta</dt><dd class="mono">{{ settings.APP_HOST }}:{{ settings.APP_PORT }}</dd>
+      <dt>Base de dados</dt><dd class="mono">{{ settings.DATABASE_URL }}</dd>
+      <dt>Utilizador</dt><dd class="mono">{{ settings.APP_USERNAME }}</dd>
+      <dt>Password</dt><dd>{{ mask(settings.APP_PASSWORD, 2) }}</dd>
+      <dt>Webhook público</dt><dd>{% if settings.PUBLIC_WEBHOOK_BASE %}<span class="mono">{{ settings.PUBLIC_WEBHOOK_BASE }}</span>{% else %}<span class="muted">não configurado (corre <code>ngrok http 8000</code> e cola aqui o URL)</span>{% endif %}</dd>
+      <dt>Log level</dt><dd><span class="badge">{{ settings.LOG_LEVEL }}</span></dd>
+    </dl>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function backupNow() {
+  try {
+    const r = await fetch('/api/db/backup', { method: 'POST' });
+    if (!r.ok) throw new Error(await r.text());
+    const data = await r.json();
+    toast(`Backup criado: ${data.name} (${(data.size_bytes/1024).toFixed(1)} KB)`, 'success');
+    setTimeout(() => location.reload(), 1200);
+  } catch (e) {
+    toast('Falha: ' + e.message, 'fail');
+  }
+}
+</script>
+{% endblock %}

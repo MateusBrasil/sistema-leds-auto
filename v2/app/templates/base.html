@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Painel{% endblock %} · VV TRAFFIC DATA</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='14' fill='%2384cc16'/%3E%3Cpath d='M22 30L40 70L50 30L60 70L78 30' stroke='%230a1500' stroke-width='9' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  {% block head %}{% endblock %}
+</head>
+<body>
+{% import '_icons.html' as ic %}
+
+{# SVG filter for gooey search effect — needed once in the DOM #}
+<svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden;">
+  <defs>
+    <filter id="goo-effect">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -15" result="goo"/>
+      <feComposite in="SourceGraphic" in2="goo" operator="atop"/>
+    </filter>
+  </defs>
+</svg>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-row">
+        <span class="brand-icon"><img src="/static/logo.png" alt="VV Traffic Data"></span>
+        <div>
+          <div class="brand-name">VV TRAFFIC DATA</div>
+          <div class="brand-sub">Sistema de Leads · v2</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-section">Trabalho</div>
+      <a href="/" class="nav-item {% if active_nav == 'home' %}active{% endif %}">{{ ic.icon('home') }} Painel</a>
+      <a href="/leads" class="nav-item {% if active_nav == 'leads' %}active{% endif %}">{{ ic.icon('users') }} Leads</a>
+      <a href="/campaigns" class="nav-item {% if active_nav == 'campaigns' %}active{% endif %}">{{ ic.icon('megaphone') }} Campanhas</a>
+      <a href="/campaigns/new" class="nav-item {% if active_nav == 'new' %}active{% endif %}">{{ ic.icon('rocket') }} Nova campanha</a>
+
+      <div class="nav-section">Sistema</div>
+      <a href="/status" class="nav-item {% if active_nav == 'status' %}active{% endif %}">{{ ic.icon('activity') }} Estado</a>
+      <a href="/settings" class="nav-item {% if active_nav == 'settings' %}active{% endif %}">{{ ic.icon('settings') }} Definições</a>
+      <a href="/docs" target="_blank" class="nav-item">{{ ic.icon('chart') }} API · Docs {{ ic.icon('arrow-up-right', cls='nav-icon') }}</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-row">
+        <div class="avatar">{{ (request.session.get('user') or 'A')[:1] | upper }}</div>
+        <div class="user-info">
+          <div class="user-name truncate">{{ request.session.get('user') or 'admin' }}</div>
+          <div class="user-role">Operador</div>
+        </div>
+        <a href="/logout" class="logout-btn" title="Sair">{{ ic.icon('logout', cls='nav-icon') }}</a>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="crumbs">
+        {% block crumbs %}<a href="/">Início</a>{% endblock %}
+      </div>
+
+      <div class="gooey-search" data-gooey-search>
+        <div class="gooey-wrapper">
+          <div class="gooey-button" data-gooey-button>
+            <span class="gooey-label">Procurar</span>
+            <input type="search" class="gooey-input" placeholder="Nome, email, telefone…" autocomplete="off" spellcheck="false">
+            <span class="gooey-icon-slot">
+              <svg class="gooey-search-icon" width="15" height="15" viewBox="0 0 15 15" fill="currentColor">
+                <path d="M10 6.5C10 8.433 8.433 10 6.5 10C4.567 10 3 8.433 3 6.5C3 4.567 4.567 3 6.5 3C8.433 3 10 4.567 10 6.5ZM9.30884 10.0159C8.53901 10.6318 7.56251 11 6.5 11C4.01472 11 2 8.98528 2 6.5C2 4.01472 4.01472 2 6.5 2C8.98528 2 11 4.01472 11 6.5C11 7.56251 10.6318 8.53901 10.0159 9.30884L12.8536 12.1464C13.0488 12.3417 13.0488 12.6583 12.8536 12.8536C12.6583 13.0488 12.3417 13.0488 12.1464 12.8536L9.30884 10.0159Z" fill-rule="evenodd" clip-rule="evenodd"/>
+              </svg>
+              <svg class="gooey-loading" viewBox="0 0 256 256" aria-label="Loading">
+                <g stroke="currentColor" stroke-width="20" stroke-linecap="round">
+                  <line x1="128" y1="32" x2="128" y2="64"/>
+                  <line x1="195.88" y1="60.12" x2="173.25" y2="82.75"/>
+                  <line x1="224" y1="128" x2="192" y2="128"/>
+                  <line x1="195.88" y1="195.88" x2="173.25" y2="173.25"/>
+                  <line x1="128" y1="224" x2="128" y2="192"/>
+                  <line x1="60.12" y1="195.88" x2="82.75" y2="173.25"/>
+                  <line x1="32" y1="128" x2="64" y2="128"/>
+                  <line x1="60.12" y1="60.12" x2="82.75" y2="82.75"/>
+                </g>
+              </svg>
+            </span>
+          </div>
+        </div>
+        <div class="gooey-panel" data-gooey-panel role="listbox" aria-label="Resultados de pesquisa"></div>
+        <span class="gooey-kbd">⌘K</span>
+      </div>
+
+      <div class="topbar-actions">
+        {% block topbar_actions %}{% endblock %}
+      </div>
+    </header>
+
+    <main class="content">
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="app-footer">
+      VV TRAFFIC DATA · Sistema de Leads V2
+    </footer>
+  </div>
+</div>
+
+<script src="/static/js/app.js" defer></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

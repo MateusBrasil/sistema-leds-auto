@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% set active_nav = 'new' %}
+{% block title %}Campanha lançada{% endblock %}
+{% block heading %}Campanha #{{ summary.campaign_id }} lançada{% endblock %}
+{% block crumbs %}<a href="/">Início</a><span class="sep">›</span><a href="/campaigns/new">Campanhas</a><span class="sep">›</span>Resultado{% endblock %}
+
+{% block content %}
+
+<div class="tip" style="margin-bottom: 24px;">
+  <span class="tip-icon">{{ ic.icon('check', cls='stat-icon') }}</span>
+  <span>Campanha executada com sucesso. Vê os números abaixo e abre a lista de leads para fazer follow-up manual quando alguém responder.</span>
+</div>
+
+<section class="stats">
+  {% if summary.captured is defined %}
+  <div class="stat">
+    <div class="stat-label">{{ ic.icon('users', cls='stat-icon') }} Leads novos</div>
+    <div class="stat-value">{{ summary.captured }}</div>
+    <div class="stat-trend">capturados de 3 fontes</div>
+  </div>
+  {% endif %}
+  {% if summary.sent_whatsapp is defined %}
+  <div class="stat">
+    <div class="stat-label">{{ ic.icon('whatsapp', cls='stat-icon') }} WhatsApp</div>
+    <div class="stat-value">{{ summary.sent_whatsapp }}</div>
+    <div class="stat-trend">enviados com sucesso</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">{{ ic.icon('mail', cls='stat-icon') }} Email</div>
+    <div class="stat-value">{{ summary.sent_email }}</div>
+    <div class="stat-trend">enviados com sucesso</div>
+  </div>
+  {% if summary.errors %}
+  <div class="stat" style="border-color: rgba(239, 68, 68, 0.3);">
+    <div class="stat-label" style="color: var(--bad);">Erros</div>
+    <div class="stat-value" style="color: var(--bad);">{{ summary.errors }}</div>
+    <div class="stat-trend down">ver logs em data/app.log</div>
+  </div>
+  {% endif %}
+  {% endif %}
+</section>
+
+<div class="actions">
+  <a href="/leads" class="btn primary">{{ ic.icon('users', cls='') }} Ver leads capturados</a>
+  <a href="/campaigns/new" class="btn">{{ ic.icon('plus', cls='') }} Nova campanha</a>
+  <a href="/" class="btn ghost">Voltar ao painel</a>
+</div>
+
+{% endblock %}

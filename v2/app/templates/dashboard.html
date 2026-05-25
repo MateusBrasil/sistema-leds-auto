@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+{% set active_nav = 'home' %}
+{% block title %}Painel{% endblock %}
+{% block crumbs %}<span class="current">Painel</span>{% endblock %}
+
+{% block topbar_actions %}
+<a href="/campaigns/new" class="btn primary">{{ ic.icon('rocket', cls='nav-icon') }} Nova campanha</a>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <h1>Painel</h1>
+  <p class="subtitle">Visão geral em tempo real da operação de prospecção: captura, envio e resposta dos leads VV Traffic Data.</p>
+</div>
+
+{# ---- Helper: render mini sparkline ---- #}
+{% macro sparkline(values, color='var(--brand)', sid='s1') %}
+  {% set maxv = (values | max) if values and (values | max) > 0 else 1 %}
+  {% set step = 80 / (values|length - 1 if values|length > 1 else 1) %}
+  <svg class="stat-spark" viewBox="0 0 80 28" preserveAspectRatio="none">
+    <defs>
+      <linearGradient id="grad-{{ sid }}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="{{ color }}" stop-opacity="0.45"/>
+        <stop offset="100%" stop-color="{{ color }}" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    {% set points = [] %}
+    {% for v in values %}
+      {% set x = loop.index0 * step %}
+      {% set y = 28 - (v * 24 / maxv) - 2 %}
+      {% set _ = points.append(x ~ ',' ~ y) %}
+    {% endfor %}
+    <polyline fill="none" stroke="{{ color }}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" points="{{ points | join(' ') }}"/>
+    <polygon fill="url(#grad-{{ sid }})" points="0,28 {{ points | join(' ') }} 80,28"/>
+  </svg>
+{% endmacro %}
+
+{% set leads_series = series | map(attribute='leads') | list %}
+{% set wa_series = series | map(attribute='whatsapp') | list %}
+{% set em_series = series | map(attribute='email') | list %}
+{% set rep_series = series | map(attribute='replies') | list %}
+
+<section class="stats">
+  <div class="stat">
+    <div class="stat-head">
+      <div class="stat-label">{{ ic.icon('users', cls='nav-icon') }} Total leads</div>
+    </div>
+    <div class="stat-value">{{ total }}</div>
+    <div class="stat-foot">14 dias: <span class="fw-600 text-2">{{ leads_series | sum }}</span> capturados</div>
+    {{ sparkline(leads_series, 'var(--brand)', 'leads') }}
+  </div>
+  <div class="stat">
+    <div class="stat-head">
+      <div class="stat-label">{{ ic.icon('whatsapp', cls='nav-icon') }} WhatsApp hoje</div>
+    </div>
+    <div class="stat-value">{{ sent_today_whatsapp }}</div>
+    <div class="stat-foot">14 dias: <span class="fw-600 text-2">{{ wa_series | sum }}</span> enviados</div>
+    {{ sparkline(wa_series, 'var(--good)', 'wa') }}
+  </div>
+  <div class="stat">
+    <div class="stat-head">
+      <div class="stat-label">{{ ic.icon('mail', cls='nav-icon') }} Email hoje</div>
+    </div>
+    <div class="stat-value">{{ sent_today_email }}</div>
+    <div class="stat-foot">14 dias: <span class="fw-600 text-2">{{ em_series | sum }}</span> enviados</div>
+    {{ sparkline(em_series, 'var(--info)', 'em') }}
+  </div>
+  <div class="stat">
+    <div class="stat-head">
+      <div class="stat-label">{{ ic.icon('inbox', cls='nav-icon') }} Respostas hoje</div>
+    </div>
+    <div class="stat-value">{{ replies_today }}</div>
+    <div class="stat-foot">Taxa: <span class="fw-600 text-2">{{ "%.1f" | format(reply_rate) }}%</span> ({{ replied }}/{{ contacted }})</div>
+    {{ sparkline(rep_series, 'var(--brand-2)', 'rep') }}
+  </div>
+</section>
+
+{% if total == 0 %}
+<div class="card">
+  <div class="empty">
+    <div class="empty-icon">{{ ic.icon('rocket', cls='') }}</div>
+    <div class="empty-title">Ainda sem leads — vamos lançar a primeira campanha</div>
+    <div class="empty-desc">Indica o nicho e a cidade. O sistema busca em 3 fontes, deduplica, enriquece, qualifica com IA e envia mensagens personalizadas em segundos.</div>
+    <a href="/campaigns/new" class="btn primary lg">{{ ic.icon('rocket', cls='nav-icon') }} Lançar primeira campanha</a>
+  </div>
+</div>
+{% else %}
+
+<h2>Operação</h2>
+
+<div class="grid-aside">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">{{ ic.icon('chart') }} Actividade últimos 14 dias</div>
+      <span class="card-sub">leads · mensagens · respostas</span>
+    </div>
+    <div class="card-body padded">
+      {# Stacked bar chart (SVG inline) #}
+      {% set max_y = 1 %}
+      {% for p in series %}
+        {% set tot = p.leads + p.whatsapp + p.email + p.replies %}
+        {% if tot > max_y %}{% set max_y = tot %}{% endif %}
+      {% endfor %}
+      <svg viewBox="0 0 700 220" preserveAspectRatio="none" style="width: 100%; height: 220px; display: block;">
+        {# y-axis grid #}
+        {% for i in range(5) %}
+          {% set y = 200 - (i * 40) %}
+          <line x1="0" y1="{{ y }}" x2="700" y2="{{ y }}" stroke="var(--border)" stroke-width="0.5"/>
+        {% endfor %}
+        {# bars #}
+        {% set bar_w = 700 / (series|length) %}
+        {% for p in series %}
+          {% set x = loop.index0 * bar_w + 4 %}
+          {% set w = bar_w - 8 %}
+          {% set h_leads = (p.leads * 180 / max_y) %}
+          {% set h_wa = (p.whatsapp * 180 / max_y) %}
+          {% set h_em = (p.email * 180 / max_y) %}
+          {% set h_rep = (p.replies * 180 / max_y) %}
+          {% set y_leads = 200 - h_leads %}
+          {% set y_wa = y_leads - h_wa %}
+          {% set y_em = y_wa - h_em %}
+          {% set y_rep = y_em - h_rep %}
+          {% if h_leads > 0 %}<rect x="{{ x }}" y="{{ y_leads }}" width="{{ w }}" height="{{ h_leads }}" fill="var(--brand)" rx="1"><title>{{ p.date }}: {{ p.leads }} leads</title></rect>{% endif %}
+          {% if h_wa > 0 %}<rect x="{{ x }}" y="{{ y_wa }}" width="{{ w }}" height="{{ h_wa }}" fill="var(--text-2)" opacity="0.7" rx="1"><title>{{ p.date }}: {{ p.whatsapp }} WhatsApp</title></rect>{% endif %}
+          {% if h_em > 0 %}<rect x="{{ x }}" y="{{ y_em }}" width="{{ w }}" height="{{ h_em }}" fill="var(--muted)" rx="1"><title>{{ p.date }}: {{ p.email }} email</title></rect>{% endif %}
+          {% if h_rep > 0 %}<rect x="{{ x }}" y="{{ y_rep }}" width="{{ w }}" height="{{ h_rep }}" fill="var(--brand-2)" rx="1"><title>{{ p.date }}: {{ p.replies }} respostas</title></rect>{% endif %}
+        {% endfor %}
+      </svg>
+      {# x-axis labels (a cada 2) #}
+      <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 11px; color: var(--muted);">
+        {% for p in series %}
+          {% if loop.index0 % 2 == 0 %}<span>{{ p.date.strftime('%d/%m') }}</span>{% endif %}
+        {% endfor %}
+      </div>
+      <div style="display: flex; gap: 16px; margin-top: 14px; flex-wrap: wrap; font-size: 11.5px; font-family: var(--font-mono); color: var(--muted);">
+        <span class="flex items-center gap-2"><span style="width:9px;height:9px;background:var(--brand);border-radius:2px;"></span> Leads</span>
+        <span class="flex items-center gap-2"><span style="width:9px;height:9px;background:var(--text-2);opacity:0.7;border-radius:2px;"></span> WhatsApp</span>
+        <span class="flex items-center gap-2"><span style="width:9px;height:9px;background:var(--muted);border-radius:2px;"></span> Email</span>
+        <span class="flex items-center gap-2"><span style="width:9px;height:9px;background:var(--brand-2);border-radius:2px;"></span> Respostas</span>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">{{ ic.icon('filter') }} Funil</div></div>
+      <div class="card-body padded">
+        {% set funnel_order = ['novo', 'contactado', 'followup', 'reuniao', 'proposta', 'cliente'] %}
+        {% set max_funnel = (by_stage.values() | list | max) if by_stage else 1 %}
+        {% for sk in funnel_order %}
+          {% set cnt = by_stage.get(sk, 0) %}
+          {% set pct = (cnt * 100 / max_funnel) if max_funnel else 0 %}
+          <div class="funnel-row">
+            <div class="funnel-head">
+              <span class="stage stage-{{ sk }}">{{ sk }}</span>
+              <span class="text-2 fw-600 mono">{{ cnt }}</span>
+            </div>
+            <div class="funnel-bar"><div class="funnel-fill" style="width: {{ pct }}%;"></div></div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>Insights</h2>
+
+<div class="grid-3">
+  <div class="card">
+    <div class="card-header"><div class="card-title">{{ ic.icon('briefcase') }} Top nichos</div></div>
+    <div class="card-body">
+      {% if top_niches %}
+      <table class="table">
+        <thead><tr><th>Nicho</th><th class="num">Leads</th><th class="num">Score médio</th></tr></thead>
+        <tbody>
+          {% for niche, cnt, avg_s in top_niches %}
+          <tr>
+            <td><strong>{{ niche }}</strong></td>
+            <td class="num">{{ cnt }}</td>
+            <td class="num"><span class="score score-{{ ((avg_s or 0) // 25) + (1 if avg_s else 0) }}">{{ "%.0f" | format(avg_s or 0) }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}<div class="empty" style="padding: 30px;"><div class="empty-desc">Sem dados ainda.</div></div>{% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title">{{ ic.icon('map-pin') }} Top cidades</div></div>
+    <div class="card-body">
+      {% if top_cities %}
+      <table class="table">
+        <thead><tr><th>Cidade</th><th class="num">Leads</th></tr></thead>
+        <tbody>
+          {% for city, cnt in top_cities %}
+          <tr><td><strong>{{ city }}</strong></td><td class="num">{{ cnt }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}<div class="empty" style="padding: 30px;"><div class="empty-desc">Sem dados ainda.</div></div>{% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title">{{ ic.icon('database') }} Por fonte</div></div>
+    <div class="card-body">
+      {% if by_source %}
+      <table class="table">
+        <thead><tr><th>Fonte</th><th class="num">Leads</th></tr></thead>
+        <tbody>
+          {% for s, cnt in by_source.items() %}
+          <tr>
+            <td>
+              {% if s == 'google_maps' %}{{ ic.icon('map-pin', cls='nav-icon') }}
+              {% elif s == 'linkedin' %}{{ ic.icon('linkedin', cls='nav-icon') }}
+              {% elif s == 'instagram' %}{{ ic.icon('instagram', cls='nav-icon') }}
+              {% else %}{{ ic.icon('globe', cls='nav-icon') }}{% endif %}
+              <strong>{{ s }}</strong>
+            </td>
+            <td class="num">{{ cnt }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}<div class="empty" style="padding: 30px;"><div class="empty-desc">Sem dados ainda.</div></div>{% endif %}
+    </div>
+  </div>
+</div>
+
+<h2>Recentes</h2>
+
+<div class="grid-aside">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">{{ ic.icon('users') }} Últimos leads</div>
+      <a href="/leads" class="btn sm ghost">Ver todos {{ ic.icon('arrow-up-right', cls='nav-icon') }}</a>
+    </div>
+    <div class="card-body">
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr><th>Score</th><th>Nome</th><th>Cidade</th><th>Nicho</th><th>Fonte</th><th>Etapa</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for l in recent_leads %}
+            <tr>
+              <td><span class="score score-{{ ((l.score or 0) // 25) + (1 if l.score else 0) }}">{{ l.score if l.score is not none else '—' }}</span></td>
+              <td><strong>{{ l.name }}</strong></td>
+              <td class="compact">{{ l.city or '—' }}</td>
+              <td class="compact">{{ l.niche or '—' }}</td>
+              <td><span class="source">{{ l.source }}</span></td>
+              <td><span class="stage stage-{{ l.stage }}">{{ l.stage }}</span></td>
+              <td><a href="/leads/{{ l.id }}" class="btn sm">Abrir</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">{{ ic.icon('megaphone') }} Campanhas</div>
+      <a href="/campaigns" class="btn sm ghost">Ver todas {{ ic.icon('arrow-up-right', cls='nav-icon') }}</a>
+    </div>
+    <div class="card-body">
+      {% if campaigns %}
+      <table class="table">
+        <thead><tr><th>Nome</th><th class="num">Cap.</th><th class="num">Env.</th></tr></thead>
+        <tbody>
+          {% for c in campaigns %}
+          <tr>
+            <td><a href="/campaigns/{{ c.id }}"><strong>{{ c.name }}</strong></a><br><span class="muted text-xs">{{ c.niche }} · {{ c.city }}</span></td>
+            <td class="num">{{ c.leads_captured }}</td>
+            <td class="num">{{ c.messages_sent }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty" style="padding: 30px;"><div class="empty-desc">Sem campanhas ainda.</div></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% endif %}
+
+{% endblock %}
