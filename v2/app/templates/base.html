@@ -40,14 +40,25 @@
       <a href="/leads" class="nav-item {% if active_nav == 'leads' %}active{% endif %}">{{ ic.icon('users') }} Leads</a>
       <a href="/campaigns" class="nav-item {% if active_nav == 'campaigns' %}active{% endif %}">{{ ic.icon('megaphone') }} Campanhas</a>
       <a href="/campaigns/new" class="nav-item {% if active_nav == 'new' %}active{% endif %}">{{ ic.icon('rocket') }} Nova campanha</a>
+      <a href="/analytics" class="nav-item {% if active_nav == 'analytics' %}active{% endif %}">{{ ic.icon('chart') }} Analytics</a>
+
+      <div class="nav-section">Biblioteca</div>
+      <a href="/templates" class="nav-item {% if active_nav == 'templates' %}active{% endif %}">{{ ic.icon('note') }} Templates</a>
+      <a href="/import" class="nav-item {% if active_nav == 'import' %}active{% endif %}">{{ ic.icon('download') }} Importar CSV</a>
 
       <div class="nav-section">Sistema</div>
       <a href="/status" class="nav-item {% if active_nav == 'status' %}active{% endif %}">{{ ic.icon('activity') }} Estado</a>
+      <a href="/audit" class="nav-item {% if active_nav == 'audit' %}active{% endif %}">{{ ic.icon('shield') }} Auditoria</a>
       <a href="/settings" class="nav-item {% if active_nav == 'settings' %}active{% endif %}">{{ ic.icon('settings') }} Definições</a>
-      <a href="/docs" target="_blank" class="nav-item">{{ ic.icon('chart') }} API · Docs {{ ic.icon('arrow-up-right', cls='nav-icon') }}</a>
+      <a href="/docs" target="_blank" class="nav-item">{{ ic.icon('arrow-up-right', cls='nav-icon') }} API · Docs</a>
     </nav>
 
     <div class="sidebar-footer">
+      <button class="theme-toggle" onclick="toggleTheme()" title="Alternar tema (atalho: T)">
+        <span class="theme-icon-dark">{{ ic.icon('star', cls='nav-icon') }}</span>
+        <span class="theme-icon-light" style="display:none;">{{ ic.icon('sparkles', cls='nav-icon') }}</span>
+        <span class="theme-label">Tema escuro</span>
+      </button>
       <div class="user-row">
         <div class="avatar">{{ (request.session.get('user') or 'A')[:1] | upper }}</div>
         <div class="user-info">

@@ -345,6 +345,114 @@
     setInterval(load, 30000);
   }
 
+  // ────── Theme toggle (light/dark) ──────
+  function applyTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    const dark = document.querySelector('.theme-icon-dark');
+    const light = document.querySelector('.theme-icon-light');
+    const label = document.querySelector('.theme-label');
+    if (dark) dark.style.display = theme === 'dark' ? 'inline-flex' : 'none';
+    if (light) light.style.display = theme === 'light' ? 'inline-flex' : 'none';
+    if (label) label.textContent = theme === 'dark' ? 'Tema escuro' : 'Tema claro';
+  }
+  window.toggleTheme = function () {
+    const current = localStorage.getItem('theme') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('theme', next);
+    applyTheme(next);
+    toast(`Tema ${next === 'dark' ? 'escuro' : 'claro'} aplicado`, 'info', 1500);
+  };
+  // Aplica tema guardado IMEDIATAMENTE (evita flash do tema errado)
+  applyTheme(localStorage.getItem('theme') || 'dark');
+
+  // ────── Keyboard shortcuts globais ──────
+  let chordTimer = null;
+  let chordKey = null;
+
+  document.addEventListener('keydown', e => {
+    // Ignora se está num input/textarea/contenteditable
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable) {
+      // Excepto Cmd/Ctrl+K (já tratado em initGooeySearch)
+      return;
+    }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+    // Chord shortcuts (g + letra)
+    if (chordKey === 'g') {
+      chordKey = null;
+      if (chordTimer) clearTimeout(chordTimer);
+      if (e.key === 'l') { e.preventDefault(); location.href = '/leads'; return; }
+      if (e.key === 'c') { e.preventDefault(); location.href = '/campaigns'; return; }
+      if (e.key === 'h') { e.preventDefault(); location.href = '/'; return; }
+      if (e.key === 'a') { e.preventDefault(); location.href = '/analytics'; return; }
+      if (e.key === 's') { e.preventDefault(); location.href = '/settings'; return; }
+      if (e.key === 't') { e.preventDefault(); location.href = '/templates'; return; }
+      return;
+    }
+
+    if (e.key === 'g') {
+      e.preventDefault();
+      chordKey = 'g';
+      chordTimer = setTimeout(() => { chordKey = null; }, 1200);
+      return;
+    }
+
+    // Single-key shortcuts
+    if (e.key === 'n') { e.preventDefault(); location.href = '/campaigns/new'; }
+    else if (e.key === 't') { e.preventDefault(); toggleTheme(); }
+    else if (e.key === '?') { e.preventDefault(); openModal('shortcuts-help'); }
+    else if (e.key === '/') {
+      e.preventDefault();
+      const root = document.querySelector('[data-gooey-search]');
+      if (root) {
+        root.classList.add('open');
+        setTimeout(() => root.querySelector('.gooey-input')?.focus(), 200);
+      }
+    }
+  });
+
+  // Help modal lazy-creation
+  function ensureHelpModal() {
+    if (document.getElementById('shortcuts-help')) return;
+    const html = `
+      <div class="modal-backdrop" id="shortcuts-help">
+        <div class="modal">
+          <div class="modal-header"><h3 class="modal-title">⌨️ Atalhos de teclado</h3>
+            <button class="modal-close" data-modal-close="shortcuts-help">✕</button></div>
+          <div class="modal-body">
+            <table class="table" style="font-size: 13px;">
+              <tbody>
+                <tr><td><kbd>⌘K</kbd> / <kbd>Ctrl K</kbd></td><td>Abrir pesquisa</td></tr>
+                <tr><td><kbd>/</kbd></td><td>Focar pesquisa</td></tr>
+                <tr><td><kbd>g</kbd> + <kbd>h</kbd></td><td>Ir para painel</td></tr>
+                <tr><td><kbd>g</kbd> + <kbd>l</kbd></td><td>Ir para leads</td></tr>
+                <tr><td><kbd>g</kbd> + <kbd>c</kbd></td><td>Ir para campanhas</td></tr>
+                <tr><td><kbd>g</kbd> + <kbd>a</kbd></td><td>Ir para analytics</td></tr>
+                <tr><td><kbd>g</kbd> + <kbd>t</kbd></td><td>Ir para templates</td></tr>
+                <tr><td><kbd>g</kbd> + <kbd>s</kbd></td><td>Ir para definições</td></tr>
+                <tr><td><kbd>n</kbd></td><td>Nova campanha</td></tr>
+                <tr><td><kbd>t</kbd></td><td>Toggle tema claro/escuro</td></tr>
+                <tr><td><kbd>?</kbd></td><td>Mostrar esta ajuda</td></tr>
+                <tr><td><kbd>Esc</kbd></td><td>Fechar modais / pesquisa</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>`;
+    document.body.insertAdjacentHTML('beforeend', html);
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === '?' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+      ensureHelpModal();
+    }
+  });
+
+  // Adiciona estilo simples para <kbd>
+  const kbdStyle = document.createElement('style');
+  kbdStyle.textContent = `kbd { background: var(--surface-3); border: 1px solid var(--border-2); border-radius: 3px; padding: 1px 6px; font-family: var(--font-mono); font-size: 11.5px; color: var(--text-2); }`;
+  document.head.appendChild(kbdStyle);
+
   // ────── Init ──────
   document.addEventListener('DOMContentLoaded', () => {
     initBulk();

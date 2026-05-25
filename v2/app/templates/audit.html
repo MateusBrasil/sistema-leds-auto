@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% set active_nav = 'audit' %}
+{% block title %}Auditoria{% endblock %}
+{% block crumbs %}<a href="/">Início</a><span class="sep">›</span><span class="current">Auditoria</span>{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Auditoria</h1>
+  <p class="subtitle">Histórico de eventos: logins, webhooks recebidos, follow-ups disparados, importações, bulk actions. Filtra por fonte para encontrar o que precisas.</p>
+</div>
+
+<form class="filters" id="audit-filter">
+  <div class="form-group">
+    <label>Fonte</label>
+    <select id="src">
+      <option value="">Todas</option>
+      <option value="auth">auth (logins)</option>
+      <option value="brevo_webhook">brevo_webhook</option>
+      <option value="whatsapp_webhook">whatsapp_webhook</option>
+      <option value="scheduler">scheduler (cron)</option>
+      <option value="csv_import">csv_import</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label>Limite</label>
+    <select id="lim">
+      <option value="50">50</option>
+      <option value="100" selected>100</option>
+      <option value="500">500</option>
+    </select>
+  </div>
+  <button class="btn primary" type="submit">{{ ic.icon('filter', cls='nav-icon') }} Aplicar</button>
+</form>
+
+<div class="card">
+  <div class="card-body">
+    <div class="table-wrap">
+      <table class="table" id="audit-table">
+        <thead>
+          <tr><th>Quando</th><th>Nível</th><th>Fonte</th><th>Actor</th><th>Mensagem</th></tr>
+        </thead>
+        <tbody id="audit-body"><tr><td colspan="5" class="empty-desc" style="padding:30px;text-align:center;">A carregar…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const form = document.getElementById('audit-filter');
+form.addEventListener('submit', e => { e.preventDefault(); load(); });
+
+async function load() {
+  const src = document.getElementById('src').value;
+  const lim = document.getElementById('lim').value;
+  const url = `/api/audit?limit=${lim}` + (src ? `&source=${src}` : '');
+  const rows = await (await fetch(url)).json();
+  const body = document.getElementById('audit-body');
+  if (rows.length === 0) {
+    body.innerHTML = '<tr><td colspan="5" class="empty-desc" style="padding:30px;text-align:center;">Sem eventos.</td></tr>';
+    return;
+  }
+  body.innerHTML = rows.map(r => {
+    const d = new Date(r.created_at);
+    const fmt = `${d.toLocaleDateString('pt-PT')} ${d.toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'})}`;
+    const lvlClass = r.level === 'WARNING' ? 'warn' : r.level === 'ERROR' ? 'bad' : 'success';
+    return `<tr>
+      <td class="mono">${fmt}</td>
+      <td><span class="badge ${lvlClass} dot">${r.level}</span></td>
+      <td><span class="source">${r.source}</span></td>
+      <td class="compact">${r.actor || '—'}</td>
+      <td>${r.message}</td>
+    </tr>`;
+  }).join('');
+}
+load();
+</script>
+{% endblock %}

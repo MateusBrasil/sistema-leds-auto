@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% set active_nav = 'import' %}
+{% block title %}Importar CSV{% endblock %}
+{% block crumbs %}<a href="/">Início</a><span class="sep">›</span><span class="current">Importar</span>{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Importar leads via CSV</h1>
+  <p class="subtitle">Carrega leads de fontes externas (Excel, Google Sheets, outras ferramentas). Deteção automática do separador (`,` ou `;`) e dos nomes de coluna em PT ou EN.</p>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header"><div class="card-title">{{ ic.icon('download') }} Upload</div></div>
+    <div class="card-body padded">
+      <form id="csv-form" enctype="multipart/form-data">
+        <div class="form-group">
+          <label>Ficheiro CSV</label>
+          <input type="file" name="file" id="csv-file" accept=".csv,.txt" required style="padding: 8px;">
+          <div class="hint">Codificação UTF-8 ou Latin-1. Separador `;` (Excel PT) ou `,`.</div>
+        </div>
+        <button class="btn primary lg" type="submit">{{ ic.icon('download', cls='nav-icon') }} Importar</button>
+      </form>
+      <div id="csv-result" style="margin-top: 16px;"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title">{{ ic.icon('note') }} Colunas reconhecidas</div></div>
+    <div class="card-body padded">
+      <div class="tip mb-3">
+        <span class="tip-icon">{{ ic.icon('sparkles', cls='nav-icon') }}</span>
+        <span>O nome das colunas é detectado <strong>automaticamente</strong> — não tens de renomear nada.</span>
+      </div>
+      <dl class="dl">
+        <dt>Nome</dt><dd><code>nome</code> · <code>empresa</code> · <code>name</code> · <code>company</code></dd>
+        <dt>Telefone</dt><dd><code>telefone</code> · <code>telemovel</code> · <code>tel</code> · <code>whatsapp</code> · <code>phone</code></dd>
+        <dt>Email</dt><dd><code>email</code> · <code>e-mail</code> · <code>mail</code></dd>
+        <dt>Website</dt><dd><code>website</code> · <code>site</code> · <code>url</code> · <code>web</code></dd>
+        <dt>Cidade</dt><dd><code>cidade</code> · <code>city</code> · <code>localidade</code></dd>
+        <dt>Nicho</dt><dd><code>nicho</code> · <code>niche</code> · <code>categoria</code></dd>
+        <dt>Morada</dt><dd><code>morada</code> · <code>address</code> · <code>endereço</code></dd>
+      </dl>
+
+      <div class="tip warn mt-3">
+        <span class="tip-icon">{{ ic.icon('shield', cls='nav-icon') }}</span>
+        <span><strong>Dedup automático:</strong> leads que já existem (nome + telefone + website + email iguais) são ignorados. Não há risco de criar duplicados.</span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('csv-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const file = document.getElementById('csv-file').files[0];
+  if (!file) return;
+  const fd = new FormData(); fd.append('file', file);
+  const result = document.getElementById('csv-result');
+  result.innerHTML = '<div class="tip"><span class="tip-icon"><span class="spinner"></span></span> A processar…</div>';
+  try {
+    const r = await fetch('/api/leads/import', {method: 'POST', body: fd});
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || 'erro');
+    result.innerHTML = `<div class="tip success">
+      <span class="tip-icon">${'✓'}</span>
+      <span>Processei <strong>${d.rows}</strong> linhas: <strong class="text-2">${d.added} novos</strong> · ${d.skipped} duplicados · ${d.errors} erros.</span>
+    </div><a href="/leads" class="btn primary mt-3">Ver leads importados →</a>`;
+  } catch (e) {
+    result.innerHTML = '<div class="tip bad">' + e.message + '</div>';
+  }
+});
+</script>
+{% endblock %}

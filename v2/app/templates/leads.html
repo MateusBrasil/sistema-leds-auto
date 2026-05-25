@@ -4,6 +4,7 @@
 {% block crumbs %}<a href="/">Início</a><span class="sep">›</span><span class="current">Leads</span>{% endblock %}
 
 {% block topbar_actions %}
+<button class="btn" onclick="runFollowupsNow()" title="Dispara o ciclo de follow-up imediatamente">{{ ic.icon('refresh', cls='nav-icon') }} Follow-ups agora</button>
 <button class="btn" data-export>{{ ic.icon('download', cls='nav-icon') }} Export CSV</button>
 <a href="/campaigns/new" class="btn primary">{{ ic.icon('plus', cls='nav-icon') }} Capturar mais</a>
 {% endblock %}
@@ -47,11 +48,30 @@
     <label>Score ≥</label>
     <input type="number" name="min_score" value="{{ min_score }}" min="0" max="100" placeholder="0" autocomplete="off">
   </div>
+  {% if all_tags %}
+  <div class="form-group">
+    <label>Tag</label>
+    <select name="tag">
+      <option value="">Todas</option>
+      {% for t in all_tags %}<option value="{{ t }}" {% if t == selected_tag %}selected{% endif %}>#{{ t }}</option>{% endfor %}
+    </select>
+  </div>
+  {% endif %}
   <button class="btn primary" type="submit">{{ ic.icon('filter', cls='nav-icon') }} Aplicar</button>
-  {% if selected_stage or selected_source or min_score or search_q or selected_campaign %}
+  {% if selected_stage or selected_source or min_score or search_q or selected_campaign or selected_tag %}
   <a href="/leads" class="btn ghost">Limpar</a>
   {% endif %}
 </form>
+
+{% if total_filtered > per_page %}
+<div class="flex items-center mt-2 mb-2" style="justify-content: space-between; font-size: 12px; color: var(--muted); font-family: var(--font-mono);">
+  <span>Página <strong>{{ page }}</strong> de <strong>{{ total_pages }}</strong> · {{ total_filtered }} total</span>
+  <div class="btn-group">
+    {% if page > 1 %}<a href="?{% if search_q %}q={{ search_q }}&{% endif %}{% if selected_stage %}stage={{ selected_stage }}&{% endif %}{% if selected_source %}source={{ selected_source }}&{% endif %}{% if selected_campaign %}campaign={{ selected_campaign }}&{% endif %}{% if min_score %}min_score={{ min_score }}&{% endif %}{% if selected_tag %}tag={{ selected_tag }}&{% endif %}page={{ page - 1 }}&per_page={{ per_page }}" class="btn sm">← Anterior</a>{% else %}<span class="btn sm" disabled>← Anterior</span>{% endif %}
+    {% if page < total_pages %}<a href="?{% if search_q %}q={{ search_q }}&{% endif %}{% if selected_stage %}stage={{ selected_stage }}&{% endif %}{% if selected_source %}source={{ selected_source }}&{% endif %}{% if selected_campaign %}campaign={{ selected_campaign }}&{% endif %}{% if min_score %}min_score={{ min_score }}&{% endif %}{% if selected_tag %}tag={{ selected_tag }}&{% endif %}page={{ page + 1 }}&per_page={{ per_page }}" class="btn sm">Seguinte →</a>{% else %}<span class="btn sm" disabled>Seguinte →</span>{% endif %}
+  </div>
+</div>
+{% endif %}
 
 <div class="bulk-bar" data-bulk-bar>
   <strong><span data-bulk-count>0</span> seleccionados</strong>
@@ -83,6 +103,7 @@
             <th>Campanha</th>
             <th>Fonte</th>
             <th>Etapa</th>
+            <th>Tags / Follow-up</th>
             <th></th>
           </tr>
         </thead>
@@ -105,6 +126,12 @@
             </td>
             <td><span class="source">{{ lead.source }}</span></td>
             <td><span class="stage stage-{{ lead.stage }}">{{ lead.stage }}</span></td>
+            <td>
+              {% if lead.tags %}
+                {% for t in lead.tags.split(',') %}<span class="badge brand" style="font-size: 9px; padding: 0 5px;">#{{ t }}</span>{% endfor %}
+              {% endif %}
+              {% if lead.next_followup_at %}<span class="badge warn" title="Próximo follow-up agendado">{{ ic.icon('clock', cls='nav-icon') }} {{ lead.next_followup_at.strftime('%d/%m') }}</span>{% endif %}
+            </td>
             <td><a href="/leads/{{ lead.id }}" class="btn sm">Abrir</a></td>
           </tr>
           {% endfor %}
@@ -125,4 +152,21 @@
   </div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function runFollowupsNow() {
+  if (!confirm('Disparar follow-ups agora? Vai enviar mensagens reais aos leads que estão prontos para o próximo toque (D2/D4/D7/D10).')) return;
+  toast('A executar follow-ups...', 'info');
+  try {
+    const r = await fetch('/api/followups/run', {method: 'POST'});
+    const d = await r.json();
+    toast(`Follow-up: ${d.triggered} elegíveis · ${d.sent} enviados · ${d.archived} arquivados · ${d.errors} erros`, 'success', 5000);
+    setTimeout(() => location.reload(), 1200);
+  } catch (e) {
+    toast('Falhou: ' + e.message, 'fail');
+  }
+}
+</script>
 {% endblock %}

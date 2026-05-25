@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% set active_nav = 'analytics' %}
+{% block title %}Analytics{% endblock %}
+{% block crumbs %}<a href="/">Início</a><span class="sep">›</span><span class="current">Analytics</span>{% endblock %}
+
+{% block topbar_actions %}
+<div class="btn-group">
+  <button class="btn sm" data-period="7">7d</button>
+  <button class="btn sm" data-period="30">30d</button>
+  <button class="btn sm" data-period="90">90d</button>
+  <button class="btn sm" data-period="365">12m</button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Analytics</h1>
+  <p class="subtitle">Métricas avançadas: time-to-reply, reply rate por nicho, funnel de conversão, breakdown por fonte. Auto-refresh a cada 60s.</p>
+</div>
+
+<section class="stats" id="ana-stats">
+  <div class="stat"><div class="stat-label">Período</div><div class="stat-value tnum" id="m-period">30d</div></div>
+  <div class="stat"><div class="stat-label">Leads novos</div><div class="stat-value tnum" id="m-new">—</div></div>
+  <div class="stat"><div class="stat-label">Contactados</div><div class="stat-value tnum" id="m-contacted">—</div></div>
+  <div class="stat"><div class="stat-label">Responderam</div><div class="stat-value tnum" id="m-replied">—</div></div>
+  <div class="stat"><div class="stat-label">Taxa de resposta</div><div class="stat-value tnum" id="m-reply-rate">—</div></div>
+  <div class="stat"><div class="stat-label">Tempo médio resposta</div><div class="stat-value tnum" id="m-ttr">—</div><div class="stat-foot" id="m-ttr-med"></div></div>
+</section>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header"><div class="card-title">{{ ic.icon('briefcase') }} Top nichos por reply-rate</div></div>
+    <div class="card-body"><div id="by-niche"></div></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><div class="card-title">{{ ic.icon('filter') }} Funnel completo</div></div>
+    <div class="card-body padded"><div id="funnel"></div></div>
+  </div>
+</div>
+
+<div class="card mt-3">
+  <div class="card-header"><div class="card-title">{{ ic.icon('database') }} Captação por fonte (período seleccionado)</div></div>
+  <div class="card-body"><div id="by-source"></div></div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentPeriod = 30;
+function setActivePeriod(p) {
+  document.querySelectorAll('[data-period]').forEach(b => {
+    b.classList.toggle('primary', parseInt(b.dataset.period) === p);
+  });
+}
+document.querySelectorAll('[data-period]').forEach(b => {
+  b.addEventListener('click', () => {
+    currentPeriod = parseInt(b.dataset.period);
+    setActivePeriod(currentPeriod);
+    load();
+  });
+});
+setActivePeriod(30);
+
+async function load() {
+  try {
+    const r = await fetch(`/api/metrics?period_days=${currentPeriod}`);
+    const d = await r.json();
+    document.getElementById('m-period').textContent = `${d.period_days}d`;
+    document.getElementById('m-new').textContent = d.new_leads;
+    document.getElementById('m-contacted').textContent = d.contacted;
+    document.getElementById('m-replied').textContent = d.replied;
+    document.getElementById('m-reply-rate').textContent = d.reply_rate.toFixed(1) + '%';
+    document.getElementById('m-ttr').textContent = d.avg_time_to_reply_hours.toFixed(1) + 'h';
+    document.getElementById('m-ttr-med').textContent = `mediana ${d.median_time_to_reply_hours.toFixed(1)}h`;
+
+    // By niche table
+    const niche = document.getElementById('by-niche');
+    if (d.by_niche.length === 0) {
+      niche.innerHTML = '<div class="empty" style="padding:30px;"><div class="empty-desc">Sem dados ainda neste período.</div></div>';
+    } else {
+      niche.innerHTML = `<table class="table"><thead><tr><th>Nicho</th><th class="num">Total</th><th class="num">Responderam</th><th class="num">Reply rate</th></tr></thead><tbody>${
+        d.by_niche.map(n => `<tr>
+          <td><strong>${n.niche}</strong></td>
+          <td class="num">${n.total}</td>
+          <td class="num">${n.replied}</td>
+          <td class="num"><span class="score score-${n.reply_rate >= 15 ? 4 : n.reply_rate >= 8 ? 3 : n.reply_rate >= 3 ? 2 : 1}">${n.reply_rate.toFixed(1)}%</span></td>
+        </tr>`).join('')
+      }</tbody></table>`;
+    }
+
+    // Funnel
+    const maxF = Math.max(...Object.values(d.funnel), 1);
+    document.getElementById('funnel').innerHTML = Object.entries(d.funnel).map(([stage, count]) => `
+      <div class="funnel-row">
+        <div class="funnel-head"><span class="stage stage-${stage}">${stage}</span><span class="text-2 fw-600 mono">${count}</span></div>
+        <div class="funnel-bar"><div class="funnel-fill" style="width: ${count*100/maxF}%;"></div></div>
+      </div>
+    `).join('');
+
+    // By source
+    const src = document.getElementById('by-source');
+    const sourceEntries = Object.entries(d.by_source);
+    if (sourceEntries.length === 0) {
+      src.innerHTML = '<div class="empty" style="padding:30px;"><div class="empty-desc">Sem captação no período.</div></div>';
+    } else {
+      src.innerHTML = `<table class="table"><thead><tr><th>Fonte</th><th class="num">Leads</th></tr></thead><tbody>${
+        sourceEntries.map(([s, n]) => `<tr><td><span class="source">${s}</span></td><td class="num">${n}</td></tr>`).join('')
+      }</tbody></table>`;
+    }
+  } catch (e) {
+    toast('Falha ao carregar métricas: ' + e.message, 'fail');
+  }
+}
+load();
+setInterval(load, 60000);
+</script>
+{% endblock %}

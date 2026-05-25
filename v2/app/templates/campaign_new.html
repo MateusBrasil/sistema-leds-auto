@@ -108,6 +108,10 @@ VV TRAFFIC DATA</textarea>
           <input type="checkbox" name="use_ai" value="true" checked>
           <span>{{ ic.icon('sparkles', cls='nav-icon') }} <strong>Personalização IA (Gemini)</strong> — gera frase única por lead</span>
         </label>
+        <label class="switch mt-2">
+          <input type="checkbox" name="dry_run" value="true">
+          <span>{{ ic.icon('shield', cls='nav-icon') }} <strong>Modo dry-run</strong> — simula tudo (captura, enriquece, qualifica) <strong class="text-2">mas NÃO envia mensagens</strong>. Útil para testar templates sem queimar Brevo/WhatsApp.</span>
+        </label>
       </div>
     </div>
 

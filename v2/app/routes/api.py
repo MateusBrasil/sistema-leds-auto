@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..deps import require_user
-from ..models import Lead, Campaign, Message, Stage
+from ..models import Lead, Campaign, Message, Stage, utcnow
 from ..services.pipeline import capture, send_campaign, build_brevo, build_whatsapp
 from ..services.messaging import render_template
 from ..services.health import all_checks

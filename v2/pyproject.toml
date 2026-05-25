@@ -1,0 +1,14 @@
+[project]
+name = "vvtraffic-leads"
+version = "2.0.0"
+description = "Sistema de Leads — prospecção automática + CRM para agências de tráfego pago"
+requires-python = ">=3.11"
+authors = [{ name = "VV TRAFFIC DATA" }]
+readme = "README.md"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% set active_nav = 'templates' %}
+{% block title %}Templates{% endblock %}
+{% block crumbs %}<a href="/">Início</a><span class="sep">›</span><span class="current">Templates</span>{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn primary" onclick="openModal('m-tmpl-new')">{{ ic.icon('plus', cls='nav-icon') }} Novo template</button>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Biblioteca de templates</h1>
+  <p class="subtitle">Mensagens reutilizáveis por nicho e toque (1=primeiro contacto, 2-5=follow-up). Cola-os depois nas campanhas em vez de escrever do zero.</p>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    {% if templates %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Nome</th><th>Nicho</th><th>Canal</th><th>Toque</th><th>Conteúdo</th><th></th></tr></thead>
+        <tbody>
+          {% for t in templates %}
+          <tr>
+            <td><strong>{{ t.name }}</strong></td>
+            <td class="compact">{{ t.niche or '—' }}</td>
+            <td><span class="badge {% if t.channel == 'whatsapp' %}success{% else %}info{% endif %}">{{ t.channel }}</span></td>
+            <td class="num"><span class="badge">#{{ t.touch_number }}</span></td>
+            <td class="compact">
+              {% if t.subject %}<div class="fw-600">{{ t.subject[:60] }}</div>{% endif %}
+              <div class="muted text-xs">{{ t.body[:120] }}{% if t.body|length > 120 %}…{% endif %}</div>
+            </td>
+            <td>
+              <button class="btn sm" data-copy="{{ t.body }}">Copiar</button>
+              <button class="btn sm bad" data-confirm="Apagar template '{{ t.name }}'?" onclick="deleteTpl({{ t.id }})">{{ ic.icon('trash', cls='nav-icon') }}</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty">
+      <div class="empty-icon">{{ ic.icon('note', cls='') }}</div>
+      <div class="empty-title">Sem templates ainda</div>
+      <div class="empty-desc">Cria a tua biblioteca por nicho (dentista, ginásio, lavagem...) e por toque (1=primeiro, 2-5=follow-up).</div>
+      <button class="btn primary" onclick="openModal('m-tmpl-new')">Criar primeiro template</button>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="modal-backdrop" id="m-tmpl-new">
+  <div class="modal" style="max-width: 640px;">
+    <div class="modal-header">
+      <h3 class="modal-title">{{ ic.icon('plus') }} Novo template</h3>
+      <button class="modal-close" data-modal-close="m-tmpl-new">{{ ic.icon('x', cls='nav-icon') }}</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label>Nome interno</label><input id="t-name" placeholder="Ex: Dentista 1º toque WhatsApp"></div>
+      <div class="row">
+        <div class="form-group"><label>Nicho (opcional)</label><input id="t-niche" placeholder="ex: dentista"></div>
+        <div class="form-group"><label>Toque</label><select id="t-touch"><option value="1">1 (primeiro)</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5 (breakup)</option></select></div>
+      </div>
+      <div class="form-group"><label>Canal</label><select id="t-channel"><option value="whatsapp">WhatsApp</option><option value="email">Email</option></select></div>
+      <div class="form-group" id="t-subj-wrap" style="display:none;"><label>Assunto</label><input id="t-subject"></div>
+      <div class="form-group"><label>Corpo</label><textarea id="t-body" rows="7" placeholder="Olá {{ '{{nome}}' }}, ..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn ghost" data-modal-close="m-tmpl-new">Cancelar</button>
+      <button class="btn primary" onclick="saveTpl()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('t-channel').addEventListener('change', e => {
+  document.getElementById('t-subj-wrap').style.display = e.target.value === 'email' ? 'block' : 'none';
+});
+
+async function saveTpl() {
+  const payload = {
+    name: document.getElementById('t-name').value,
+    niche: document.getElementById('t-niche').value || null,
+    channel: document.getElementById('t-channel').value,
+    touch_number: parseInt(document.getElementById('t-touch').value),
+    subject: document.getElementById('t-subject').value || null,
+    body: document.getElementById('t-body').value,
+  };
+  if (!payload.name || !payload.body) { toast('Nome e corpo obrigatórios', 'fail'); return; }
+  const r = await fetch('/api/templates', {method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+  if (!r.ok) { toast('Falhou: ' + await r.text(), 'fail'); return; }
+  toast('Template guardado', 'success');
+  setTimeout(() => location.reload(), 700);
+}
+
+async function deleteTpl(id) {
+  await fetch(`/api/templates/${id}`, {method: 'DELETE'});
+  toast('Template apagado', 'success');
+  setTimeout(() => location.reload(), 500);
+}
+</script>
+{% endblock %}

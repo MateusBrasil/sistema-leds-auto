@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from ..config import settings
 from ..database import get_db
 from ..deps import require_user
-from ..models import Lead, Campaign, Message, MessageStatus, Stage
+from ..models import Lead, Campaign, Message, MessageStatus, Stage, utcnow
 from ..services.pipeline import capture, send_campaign
 
 router = APIRouter()
@@ -279,6 +279,7 @@ async def new_campaign_submit(
     max_leads: int = Form(60),
     use_ai: bool = Form(False),
     expand_variations: bool = Form(False),
+    dry_run: bool = Form(False),
     db: Session = Depends(get_db),
     user: str = Depends(require_user),
 ):
@@ -292,6 +293,7 @@ async def new_campaign_submit(
         max_leads=max(5, min(300, max_leads)),
         use_ai_personalization=use_ai,
         expand_variations=expand_variations,
+        dry_run=dry_run,
     )
     db.add(campaign); db.commit(); db.refresh(campaign)
     return RedirectResponse(f"/campaigns/{campaign.id}/run", status_code=303)
@@ -322,6 +324,28 @@ def campaign_detail(campaign_id: int, request: Request, db: Session = Depends(ge
 @router.get("/status", response_class=HTMLResponse)
 def status_page(request: Request, user: str = Depends(require_user)):
     return templates.TemplateResponse(request, "status.html", {})
+
+
+@router.get("/analytics", response_class=HTMLResponse)
+def analytics_page(request: Request, user: str = Depends(require_user)):
+    return templates.TemplateResponse(request, "analytics.html", {})
+
+
+@router.get("/audit", response_class=HTMLResponse)
+def audit_page(request: Request, user: str = Depends(require_user)):
+    return templates.TemplateResponse(request, "audit.html", {})
+
+
+@router.get("/templates", response_class=HTMLResponse)
+def templates_page(request: Request, db: Session = Depends(get_db), user: str = Depends(require_user)):
+    from ..models import MessageTemplate
+    rows = db.execute(select(MessageTemplate).order_by(desc(MessageTemplate.created_at))).scalars().all()
+    return templates.TemplateResponse(request, "templates.html", {"templates": rows})
+
+
+@router.get("/import", response_class=HTMLResponse)
+def import_page(request: Request, user: str = Depends(require_user)):
+    return templates.TemplateResponse(request, "import.html", {})
 
 
 @router.get("/settings", response_class=HTMLResponse)

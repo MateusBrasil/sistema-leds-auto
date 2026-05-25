@@ -15,6 +15,33 @@ Substitui o Google Apps Script (`../Codigo.gs`) por um backend robusto, dashboar
 4. Voltar a correr `start.bat` → abre o servidor.
 5. Browser → http://127.0.0.1:8000 → user/pass de `.env` (`admin` / `change-me` por defeito).
 
+## 🐳 Deploy cloud (Docker / Railway / Render)
+
+### Local com Docker
+```bash
+docker compose up -d   # corre na porta 8000
+```
+
+### Railway (1 clique)
+1. Push do repo para GitHub
+2. railway.app → New Project → Deploy from GitHub
+3. Adicionar variáveis de ambiente (copiar tudo do `.env`)
+4. Deploy automático. Aceder no URL Railway gerado.
+
+### Render / Fly.io / Heroku
+Suportam o `Procfile` directamente.
+
+### Hetzner / VPS
+```bash
+git clone <repo>
+cd v2
+docker compose up -d
+# Apontar Cloudflare/nginx para porta 8000
+```
+
+### CI/CD
+Cada `git push` corre testes + build Docker via `.github/workflows/ci.yml`.
+
 ---
 
 ## 🧭 Como usar (3 cliques)
